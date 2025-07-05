@@ -1,0 +1,34 @@
+{
+  "name": "PROJECT_NAME Dev Environment",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        // Language support
+        "rust-lang.rust-analyzer",
+        "ms-python.python",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        
+        // Container support
+        "ms-vscode-remote.remote-containers",
+        
+        // Git
+        "eamodio.gitlens"
+      ],
+      "settings": {
+        "dev.containers.dockerPath": "/opt/podman/bin/podman",
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  },
+  "runArgs": [
+    "--security-opt", "label=disable",
+    "--secret", "github-PROJECT_NAME-dev,type=env,target=GITHUB_PAT",
+    "--secret", "github-PROJECT_NAME-mcp,type=env,target=GITHUB_MCP_PAT"
+  ],
+  "postCreateCommand": "bash .devcontainer/setup.sh || true",
+  "remoteUser": "vscode"
+}

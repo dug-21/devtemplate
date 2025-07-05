@@ -1,0 +1,40 @@
+{
+  "name": "Secure Claude Dev Environment",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "runArgs": [
+    "--cap-drop=ALL",
+    "--cap-add=SYS_PTRACE",
+    "--security-opt=no-new-privileges",
+    "--security-opt=seccomp=unconfined"
+  ],
+  "mounts": [{
+    "source": "${localWorkspaceFolder}",
+    "target": "/workspace",
+    "type": "bind",
+    "consistency": "cached"
+  }],
+  "workspaceFolder": "/workspace",
+  "remoteUser": "node",
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/node:1": {}
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode"
+      ],
+      "settings": {
+        "remote.localPortHost": "localhost"
+      }
+    }
+  },
+  "forwardPorts": [3000, 8080],
+  "postCreateCommand": "echo 'Secure container ready!'",
+  "containerEnv": {
+    "NODE_ENV": "development"
+  }
+}

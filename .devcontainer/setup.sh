@@ -6,11 +6,15 @@ echo "🚀 Setting up development environment..."
 echo "📦 Installing MCP servers..."
 npm install -g @modelcontextprotocol/server-github @modelcontextprotocol/server-filesystem 2>/dev/null || echo "Note: MCP servers installation had warnings"
 
+# Install ruv-swarm globally
+echo "📦 Installing ruv-swarm..."
+npm install -g ruv-swarm 2>/dev/null || echo "Note: ruv-swarm installation had warnings"
+
 # Fix ruv-swarm permissions
 echo "🔧 Fixing ruv-swarm permissions..."
 if [ -d "/usr/lib/node_modules/ruv-swarm" ]; then
-    mkdir -p /usr/lib/node_modules/ruv-swarm/data 2>/dev/null || true
-    chmod -R 777 /usr/lib/node_modules/ruv-swarm/data 2>/dev/null || true
+    sudo mkdir -p /usr/lib/node_modules/ruv-swarm/data 2>/dev/null || true
+    sudo chmod -R 777 /usr/lib/node_modules/ruv-swarm/data 2>/dev/null || true
     echo "✅ ruv-swarm permissions fixed"
 else
     echo "⚠️  ruv-swarm not found globally, skipping permissions fix"
@@ -57,6 +61,14 @@ if [ -z "$(git config --global user.name 2>/dev/null)" ]; then
     git config --global user.name 'Doug Faist'
     git config --global user.email 'angryweed@gmail.com'
 fi
+
+# Initialize ruv-swarm in the repository for full functionality
+echo ""
+echo "🔧 Initializing ruv-swarm..."
+cd /workspaces/devtemplate && npx -y ruv-swarm init --claude
+echo ""
+echo "✅ ruv-swarm initialization complete!"
+echo
 
 echo ""
 echo "✅ Setup complete!"

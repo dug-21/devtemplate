@@ -1,0 +1,45 @@
+{
+  "github": {
+    "owner": "YOUR_GITHUB_USERNAME",
+    "repo": "YOUR_REPO_NAME",
+    "pollInterval": 300000,
+    "enabled": true
+  },
+  "phases": {
+    "idea": {
+      "agents": ["researcher", "analyst"],
+      "strategy": "research",
+      "autoAdvance": false,
+      "nextPhase": "research"
+    },
+    "research": {
+      "agents": ["researcher", "analyst", "coordinator"],
+      "strategy": "analysis",
+      "autoAdvance": true,
+      "nextPhase": "planning"
+    },
+    "planning": {
+      "agents": ["analyst", "coder", "coordinator"],
+      "strategy": "planning",
+      "autoAdvance": false,
+      "nextPhase": "implementation"
+    },
+    "implementation": {
+      "agents": ["coder", "tester", "coordinator"],
+      "strategy": "development",
+      "autoAdvance": false,
+      "nextPhase": "testing"
+    }
+  },
+  "automation": {
+    "welcomeNewIssues": true,
+    "autoLabel": true,
+    "postUpdates": true,
+    "triggerSwarms": true
+  },
+  "templates": {
+    "welcome": "👋 Thanks for opening this issue! Our GitHub workflow automation has been activated.",
+    "swarmActivated": "🐝 A {phase} swarm has been deployed to analyze this issue.",
+    "analysisComplete": "✅ Swarm analysis complete. See results above."
+  }
+}

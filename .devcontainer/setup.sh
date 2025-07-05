@@ -76,6 +76,13 @@ echo ""
 echo "✅ ruv-swarm initialization complete!"
 echo
 
+# Setup GitHub workflow integration if enabled
+if [ -f ".devcontainer/setup-github-workflow.sh" ]; then
+    echo ""
+    echo "🐙 Setting up GitHub workflow integration..."
+    bash .devcontainer/setup-github-workflow.sh
+fi
+
 echo ""
 echo "✅ Setup complete!"
 echo ""

@@ -1,0 +1,54 @@
+name: "💡 Idea Exploration"
+description: "Explore a new idea or concept"
+labels: ["phase:idea", "needs-research"]
+assignees: []
+body:
+  - type: input
+    id: idea-title
+    attributes:
+      label: "Idea Title"
+      description: "Brief description of the idea"
+      placeholder: "e.g., Add dark mode toggle to user settings"
+    validations:
+      required: true
+      
+  - type: textarea
+    id: problem-statement
+    attributes:
+      label: "Problem Statement"
+      description: "What problem does this idea solve?"
+      placeholder: "Describe the problem or opportunity this idea addresses"
+    validations:
+      required: true
+      
+  - type: textarea
+    id: initial-thoughts
+    attributes:
+      label: "Initial Thoughts"
+      description: "Any initial ideas on approach or implementation?"
+      placeholder: "Share any early thoughts, constraints, or considerations"
+      
+  - type: checkboxes
+    id: research-areas
+    attributes:
+      label: "Research Areas"
+      description: "What areas need research?"
+      options:
+        - label: "Technical feasibility"
+        - label: "User experience impact"
+        - label: "Resource requirements"
+        - label: "Similar solutions analysis"
+        - label: "Market research"
+        
+  - type: dropdown
+    id: priority
+    attributes:
+      label: "Initial Priority"
+      description: "How urgent/important is this idea?"
+      options:
+        - "Low - Nice to have"
+        - "Medium - Would improve things"
+        - "High - Important for goals"
+        - "Critical - Blocking other work"
+    validations:
+      required: true

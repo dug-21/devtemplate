@@ -1,51 +1,98 @@
-# Base Development Container
+# Personal Development Container
 
-This is a minimal devcontainer setup that ensures Claude Code CLI and ruv-swarm are available in any project.
+A fully-featured development container with Claude Code CLI, ruv-swarm orchestration, and multi-language support.
 
 ## What's Included
 
+### Core Tools
 - **Claude Code CLI** - AI-powered development assistant
-- **ruv-swarm** - Distributed AI swarm coordination
-- **Git** - Version control
-- **Node.js** - For running Claude and ruv-swarm
+- **ruv-swarm** - Distributed AI swarm orchestration with MCP integration
+- **Git** - Version control with credential management
 
-## Setup Scripts
+### Language Support
+- **Node.js** (LTS) - JavaScript/TypeScript development
+- **Python 3** - Python development with pip and venv
+- **Rust** - Systems programming with cargo
 
-- `setup.sh` - Installs Claude Code and ruv-swarm globally
-- `post-start.sh` - Verifies installations and shows status
-- `mcp_setup.sh` - Configures MCP servers (ruv-swarm and optionally GitHub)
-- `mcp_setup_podman.sh` - Alternative setup that includes Podman MCP server
+### MCP Servers
+- **@modelcontextprotocol/server-github** - GitHub integration
+- **@modelcontextprotocol/server-filesystem** - File system access
+- **ruv-swarm** - AI swarm coordination (via stdio)
 
-## Usage
+## Setup Process
 
-1. Copy this `.devcontainer` folder to any project
-2. Open in VS Code or GitHub Codespaces
-3. The container will automatically install Claude and ruv-swarm
-4. Add project-specific tools and dependencies as needed
+The container automatically:
+1. Installs all MCP servers and ruv-swarm globally
+2. Fixes ruv-swarm permissions for data directory access
+3. Configures git authentication using provided PATs
+4. Creates persistent Claude configuration
+5. Initializes ruv-swarm with Claude integration
 
 ## Environment Variables
 
-- `AGENT_TOKEN` - (Optional) GitHub personal access token for GitHub MCP server
+- `GITHUB_PAT` - Developer GitHub personal access token for git operations
+- `AGENT_TOKEN` - MCP GitHub personal access token for Claude/AI agents
 
-## Available MCP Servers
+Both tokens are passed securely using Docker secrets.
 
-### Default (mcp_setup.sh)
-- **ruv-swarm** - AI swarm coordination
-- **github** - GitHub integration (if AGENT_TOKEN is set)
+## Files and Scripts
 
-### With Podman Support (mcp_setup_podman.sh)
-- **ruv-swarm** - AI swarm coordination
-- **podman** - Container management (works with both Podman and Docker)
-- **github** - GitHub integration (if AGENT_TOKEN is set)
+### Configuration Files
+- `devcontainer.json` - Main container configuration with VS Code extensions
+- `Dockerfile` - Container image definition with all language runtimes
 
-To use Podman MCP, update your `post-start.sh` to call `mcp_setup_podman.sh` instead of `mcp_setup.sh`.
+### Setup Scripts
+- `setup.sh` - Main setup script that:
+  - Installs MCP servers and ruv-swarm
+  - Fixes permissions for ruv-swarm data directory
+  - Configures git authentication
+  - Creates persistent Claude configuration
+  - Initializes ruv-swarm with `--claude` flag
+- `post-start.sh` - Verifies installations and configures Claude MCP
+- `mcp_setup.sh` - Standard MCP configuration
+- `mcp_setup_podman.sh` - Alternative with Podman support
+- `setup-secrets.sh` - Manages GitHub PAT secrets
+
+## Persistent Storage
+
+The container mounts a volume at `/home/vscode/.claude` to persist:
+- Claude configuration (`.claude.json`)
+- ruv-swarm data and swarm state
+- Any other Claude-related settings
+
+## VS Code Extensions
+
+Automatically installed:
+- rust-lang.rust-analyzer - Rust language support
+- ms-python.python - Python language support
+- dbaeumer.vscode-eslint - JavaScript linting
+- esbenp.prettier-vscode - Code formatting
+- ms-vscode-remote.remote-containers - Container support
+- eamodio.gitlens - Enhanced Git features
+
+## ruv-swarm Integration
+
+After setup, ruv-swarm creates:
+- `CLAUDE.md` - Configuration guide for Claude Code
+- `.claude/settings.json` - Enhanced hooks configuration
+- `.claude/commands/` - Command documentation
+- Cross-platform wrapper scripts (`ruv-swarm`, `claude-swarm.*`)
+- Local data directory at `.ruv-swarm/` (gitignored)
+
+## Usage
+
+1. Open project in VS Code with Dev Containers extension
+2. Container will build and run setup automatically
+3. Use `claude` command for AI assistance
+4. Use ruv-swarm MCP tools for swarm orchestration
+5. All language runtimes are ready to use
 
 ## Customization
 
-This is intentionally minimal. Add project-specific:
-- Language runtimes (Python, Rust, etc.)
-- Development tools
+Add project-specific requirements:
+- Additional language runtimes
+- Database clients
 - Project dependencies
-- Additional MCP servers
+- Extra MCP servers
 
-in your project's setup scripts or Dockerfile.
+Modify the Dockerfile or add to setup.sh as needed.

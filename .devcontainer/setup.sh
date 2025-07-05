@@ -62,6 +62,12 @@ if [ -z "$(git config --global user.name 2>/dev/null)" ]; then
     git config --global user.email 'angryweed@gmail.com'
 fi
 
+# Create alias for swarm to always use ruv-swarm
+echo ""
+echo "🔗 Creating swarm alias..."
+echo 'alias swarm="ruv-swarm"' >> ~/.bashrc
+echo "✅ Alias created: swarm → ruv-swarm"
+
 # Initialize ruv-swarm in the repository for full functionality
 echo ""
 echo "🔧 Initializing ruv-swarm..."
@@ -69,6 +75,13 @@ cd /workspaces/devtemplate && npx -y ruv-swarm init --claude
 echo ""
 echo "✅ ruv-swarm initialization complete!"
 echo
+
+# Setup GitHub workflow integration if enabled
+if [ -f ".devcontainer/setup-github-workflow.sh" ]; then
+    echo ""
+    echo "🐙 Setting up GitHub workflow integration..."
+    bash .devcontainer/setup-github-workflow.sh
+fi
 
 echo ""
 echo "✅ Setup complete!"

@@ -1,0 +1,68 @@
+name: "📋 Implementation Planning"
+description: "Create detailed implementation plan"
+labels: ["phase:planning", "needs-design"]
+assignees: []
+body:
+  - type: input
+    id: feature-name
+    attributes:
+      label: "Feature Name"
+      description: "Name of the feature to implement"
+      placeholder: "e.g., Dark Mode Toggle"
+    validations:
+      required: true
+      
+  - type: textarea
+    id: requirements
+    attributes:
+      label: "Requirements"
+      description: "Detailed requirements from research phase"
+      placeholder: "List functional and non-functional requirements"
+    validations:
+      required: true
+      
+  - type: textarea
+    id: architecture
+    attributes:
+      label: "Technical Approach"
+      description: "High-level technical design"
+      placeholder: "Describe the technical approach and architecture"
+    validations:
+      required: true
+      
+  - type: textarea
+    id: implementation-tasks
+    attributes:
+      label: "Implementation Tasks"
+      description: "Break down into specific development tasks"
+      placeholder: "List specific tasks with acceptance criteria"
+    validations:
+      required: true
+      
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: "Dependencies"
+      description: "External dependencies or prerequisites"
+      placeholder: "List libraries, APIs, or other dependencies needed"
+      
+  - type: textarea
+    id: testing-strategy
+    attributes:
+      label: "Testing Strategy"
+      description: "How will this be tested?"
+      placeholder: "Describe unit tests, integration tests, manual testing needed"
+      
+  - type: input
+    id: estimate
+    attributes:
+      label: "Effort Estimate"
+      description: "Time estimate for implementation"
+      placeholder: "e.g., 3-5 days"
+      
+  - type: textarea
+    id: related-issues
+    attributes:
+      label: "Related Issues"
+      description: "Link to research or idea issues"
+      placeholder: "References: #123, #456"

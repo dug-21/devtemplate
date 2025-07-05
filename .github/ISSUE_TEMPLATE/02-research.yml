@@ -1,0 +1,58 @@
+name: "🔍 Research & Analysis"
+description: "Research and feasibility analysis"
+labels: ["phase:research", "needs-analysis"]
+assignees: []
+body:
+  - type: input
+    id: research-topic
+    attributes:
+      label: "Research Topic"
+      description: "What are we researching?"
+      placeholder: "e.g., Dark mode implementation approaches"
+    validations:
+      required: true
+      
+  - type: textarea
+    id: research-questions
+    attributes:
+      label: "Research Questions"
+      description: "What specific questions need answers?"
+      placeholder: "List the key questions this research should answer"
+    validations:
+      required: true
+      
+  - type: textarea
+    id: success-criteria
+    attributes:
+      label: "Success Criteria"
+      description: "How will we know the research is complete?"
+      placeholder: "Define what constitutes sufficient research"
+    validations:
+      required: true
+      
+  - type: textarea
+    id: background
+    attributes:
+      label: "Background Context"
+      description: "Link to idea issue or provide context"
+      placeholder: "Reference related issues: #123"
+      
+  - type: checkboxes
+    id: research-methods
+    attributes:
+      label: "Research Methods"
+      description: "How will we conduct this research?"
+      options:
+        - label: "Literature review / documentation study"
+        - label: "Competitive analysis"
+        - label: "Technical proof of concept"
+        - label: "User feedback gathering"
+        - label: "Performance/security analysis"
+        - label: "Cost-benefit analysis"
+        
+  - type: input
+    id: timeline
+    attributes:
+      label: "Timeline"
+      description: "Expected research duration"
+      placeholder: "e.g., 1-2 weeks"

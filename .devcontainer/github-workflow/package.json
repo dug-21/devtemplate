@@ -1,0 +1,21 @@
+{
+  "name": "github-workflow-integration",
+  "version": "1.0.0",
+  "description": "GitHub workflow automation with ruv-swarm integration",
+  "main": "monitor.js",
+  "scripts": {
+    "start": "node monitor.js",
+    "test": "echo \"No tests specified\" && exit 0"
+  },
+  "dependencies": {
+    "@octokit/rest": "^20.0.2"
+  },
+  "keywords": [
+    "github",
+    "workflow",
+    "automation",
+    "ruv-swarm"
+  ],
+  "author": "GitHub Workflow Integration",
+  "license": "MIT"
+}

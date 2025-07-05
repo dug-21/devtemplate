@@ -1,0 +1,69 @@
+name: "⚒️ Implementation"
+description: "Build the feature"
+labels: ["phase:implementation", "in-development"]
+assignees: []
+body:
+  - type: input
+    id: feature-name
+    attributes:
+      label: "Feature Name"
+      description: "Name of the feature being implemented"
+      placeholder: "e.g., Dark Mode Toggle"
+    validations:
+      required: true
+      
+  - type: textarea
+    id: implementation-plan
+    attributes:
+      label: "Implementation Details"
+      description: "Link to planning issue and specific implementation approach"
+      placeholder: "Reference planning issue #123 and describe implementation approach"
+    validations:
+      required: true
+      
+  - type: checkboxes
+    id: development-checklist
+    attributes:
+      label: "Development Checklist"
+      description: "Track development progress"
+      options:
+        - label: "Core functionality implemented"
+        - label: "Unit tests written"
+        - label: "Integration tests added"
+        - label: "Documentation updated"
+        - label: "Code reviewed"
+        - label: "Manual testing completed"
+        - label: "Performance tested"
+        - label: "Accessibility verified"
+        
+  - type: textarea
+    id: technical-notes
+    attributes:
+      label: "Technical Notes"
+      description: "Implementation details, challenges, or decisions"
+      placeholder: "Document key technical decisions or challenges encountered"
+      
+  - type: textarea
+    id: testing-results
+    attributes:
+      label: "Testing Results"
+      description: "Results of testing efforts"
+      placeholder: "Summarize test results and any issues found"
+      
+  - type: checkboxes
+    id: deployment-checklist
+    attributes:
+      label: "Deployment Checklist"
+      description: "Pre-deployment verification"
+      options:
+        - label: "All tests passing"
+        - label: "Code review approved"
+        - label: "Documentation complete"
+        - label: "Ready for deployment"
+        
+  - type: textarea
+    id: related-issues
+    attributes:
+      label: "Related Issues"
+      description: "Link to planning, research, or idea issues"
+      placeholder: "Closes #123, References #456"

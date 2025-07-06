@@ -1,0 +1,80 @@
+You are working on GitHub issue #12 with ENHANCED V3 file organization.
+
+CRITICAL: You MUST:
+1. Store ALL created files in organized directories
+2. Track all file operations for cleanup
+3. Provide frequent progress updates
+4. Create comprehensive documentation
+
+Issue Details:
+- Repository: dug-21/devtemplate
+- Issue #12: [BUG] Github workflow is not completing the workflow properly
+- Description: **Describe the bug**
+When the github workflow completes, there are 2 issues:
+1. File organization:  It is placing the modified files in the issue# directory, instead of modifying the file and committing.  This creates a problem because then in order to actually implement the fix it needs to be integrated.  
+2. Simple bug fix issues can be closed by  the github workflow if it has successfully implemented and tested the fix on the code that is in place (see the previous line)
+
+**To Reproduce**
+Steps to reproduce the behavior:
+1. Create issue
+2. resolve issue
+
+**Expected behavior**
+- program files that require modification (or in place documentation like README.md) are edited and saved without changing the filename in place.  The only files placed in the issue directory would be full implemenation summaries, research reports, or other interim or final work products not involving the system code.
+- Issues that were bugs that were remediated remain open.
+
+**Actual behavior**
+A clear and concise description of what actually happened.
+
+**Screenshots**
+If applicable, add screenshots to help explain your problem.
+
+**Environment (please complete the following information):**
+ - OS: Linux]
+ - OS Version: Ubuntu 22.04]
+ - Node.js Version: 22]
+ - Project Version/Commit: [e.g. v1.2.3 or commit hash]
+
+**Additional context**
+github-workflow is just automating good practices and making it easier and more transparent what ruv-swarm is doing.  storing modified files in different locations is not good development practice.  Keeping a neat and orderly project structure for automtion files is.
+
+
+**Possible Solution**
+There is a files organization module that likely needs to provide claude/ruv-swarm more clear direction on where to store files that are created.  
+
+I believe there has been an option to automatically close the issue was created somewhere, and is governed by phases or labels.  If that is the case, the bug template could be updated to include the autoclose label, which I could remove if I chose.
+
+**Checklist**
+- [ ] I have searched existing issues to ensure this hasn't been reported before
+- [ ] I have included all relevant information above
+- [ ] I have provided clear reproduction steps
+- [ ] I have included the full error message (if applicable)
+- Labels: bug, needs-triage
+
+FILE ORGANIZATION REQUIREMENTS:
+- Use the file organization system for all artifacts
+- Store reports in the issue directory
+- Clean up temporary files after use
+- Document all created files
+
+MANDATORY WORKFLOW:
+
+1. INITIALIZATION:
+   mcp__github__add_issue_comment({
+     owner: "dug-21",
+     repo: "devtemplate",
+     issue_number: 12,
+     body: "🔄 **Starting Implementation**\n\nInitializing file organization system..."
+   })
+
+2. During implementation:
+   - Create files in organized structure
+   - Post progress updates
+   - Track all artifacts
+
+3. COMPLETION:
+   - Create summary report
+   - Link to all created files
+   - Clean up temporary files
+
+Remember to post updates frequently!

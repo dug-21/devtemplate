@@ -17,6 +17,7 @@ const EventEmitter = require('events');
 const FileOrganization = require('./file-organization');
 const AIAttribution = require('./ai-attribution');
 const EnhancedGitHubClient = require('./enhanced-github-client');
+const SecurityCheck = require('./issues/issue-11/security-check');
 
 class EnhancedGitHubAutomation extends EventEmitter {
     constructor(config) {
@@ -30,6 +31,7 @@ class EnhancedGitHubAutomation extends EventEmitter {
         this.enhancedClient = new EnhancedGitHubClient(this.octokit, config);
         
         this.fileOrg = new FileOrganization();
+        this.securityCheck = new SecurityCheck();
         this.logFile = path.join(__dirname, 'automation-enhanced-v3.log');
         this.activeIssues = new Map();
         this.updateInterval = 30000;
@@ -71,7 +73,8 @@ class EnhancedGitHubAutomation extends EventEmitter {
                 phase: 'initialization',
                 updates: [],
                 issueDir,
-                tempFiles: []
+                tempFiles: [],
+                modifiedFiles: [] // Track files modified in-place
             });
 
             // Add in-progress label
@@ -168,7 +171,21 @@ The issue has been marked for manual review.`);
     async createTempFile(content, issueId, prefix, extension) {
         const tracking = this.activeIssues.get(issueId);
         const tempPath = this.fileOrg.getTempPath(tracking.number, prefix, extension);
-        await fs.writeFile(tempPath, content);
+        
+        // Security check before writing
+        try {
+            await this.securityCheck.safeWriteFile(tempPath, content);
+        } catch (error) {
+            await this.log(`SECURITY: ${error.message}`, 'ERROR');
+            // Write sanitized version instead
+            const sanitized = this.securityCheck.sanitizeObject(
+                typeof content === 'string' ? content : JSON.parse(content)
+            );
+            await fs.writeFile(tempPath, 
+                typeof sanitized === 'string' ? sanitized : JSON.stringify(sanitized, null, 2)
+            );
+        }
+        
         tracking.tempFiles.push(tempPath);
         return tempPath;
     }
@@ -193,11 +210,12 @@ The issue has been marked for manual review.`);
     createEnhancedClaudePromptV3(issue) {
         return `You are working on GitHub issue #${issue.number} with ENHANCED V3 file organization.
 
-CRITICAL: You MUST:
-1. Store ALL created files in organized directories
-2. Track all file operations for cleanup
-3. Provide frequent progress updates
-4. Create comprehensive documentation
+CRITICAL FILE MANAGEMENT RULES:
+1. **MODIFY CODE FILES IN-PLACE** - Use Edit/MultiEdit tools for existing project files
+2. **ONLY store NEW ARTIFACTS in issue directory** - Reports, summaries, research docs
+3. Track all file operations for cleanup
+4. Provide frequent progress updates
+5. Create comprehensive documentation
 
 Issue Details:
 - Repository: ${this.config.github.owner}/${this.config.github.repo}
@@ -206,8 +224,13 @@ Issue Details:
 - Labels: ${issue.labels?.map(l => l.name).join(', ') || 'None'}
 
 FILE ORGANIZATION REQUIREMENTS:
-- Use the file organization system for all artifacts
-- Store reports in the issue directory
+- **EXISTING CODE FILES**: Modify in their original locations (DO NOT copy to issue directory)
+- **NEW ARTIFACTS ONLY**: Store these in the issue directory:
+  - Implementation summaries (SUMMARY.md)
+  - Research reports
+  - Analysis documents
+  - Test results
+  - Other work products NOT part of the codebase
 - Clean up temporary files after use
 - Document all created files
 
@@ -222,16 +245,17 @@ MANDATORY WORKFLOW:
    })
 
 2. During implementation:
-   - Create files in organized structure
+   - EDIT existing code files in-place
+   - CREATE new artifacts in issue directory
    - Post progress updates
-   - Track all artifacts
+   - Track all operations
 
 3. COMPLETION:
-   - Create summary report
-   - Link to all created files
+   - Create summary report in issue directory
+   - List both modified files and created artifacts
    - Clean up temporary files
 
-Remember to post updates frequently!`;
+Remember: NEVER copy existing code files to the issue directory. Always modify them in-place!`;
     }
 
     async executeClaudeWithMonitoringV3(issue, issueId) {
@@ -241,7 +265,8 @@ Remember to post updates frequently!`;
         tracking.phase = 'claude-execution';
         
         try {
-            // Create MCP config in issue directory
+            // Create MCP config WITHOUT exposing tokens
+            // SECURITY: Never write tokens to files - pass via environment only
             const mcpConfig = {
                 mcpServers: {
                     "ruv-swarm": {
@@ -250,10 +275,8 @@ Remember to post updates frequently!`;
                     },
                     github: {
                         command: "npx",
-                        args: ["@modelcontextprotocol/server-github"],
-                        env: {
-                            AGENT_TOKEN: this.config.github.token || process.env.AGENT_TOKEN
-                        }
+                        args: ["@modelcontextprotocol/server-github"]
+                        // Token will be passed via environment variables only
                     }
                 }
             };
@@ -319,22 +342,29 @@ Remember to post updates frequently!`;
         const issueDir = this.fileOrg.getIssuePath(issue.number);
         const files = await fs.readdir(issueDir);
         
+        // Get information about modified files vs created artifacts
+        const tracking = this.activeIssues.get(`${issue.number}`);
+        const modifiedFiles = tracking?.modifiedFiles || [];
+        const createdArtifacts = files.filter(f => !f.endsWith('.md') || f === 'SUMMARY.md');
+        
         const summary = `🎉 **Processing Complete!**
 
-All artifacts have been organized and stored.
+All changes have been implemented successfully.
 
-**📁 Issue Directory:** [View All Files](${reportUrl})
+**📝 Modified Files (In-Place):**
+${modifiedFiles.length > 0 ? modifiedFiles.map(f => `- \`${f}\` - Modified in original location`).join('\n') : '- No code files were modified'}
 
-**Files Created:**
-${files.map(f => `- \`${f}\``).join('\n')}
+**📁 Created Artifacts:** [View in Issue Directory](${reportUrl})
+${createdArtifacts.map(f => `- \`${f}\``).join('\n')}
 
 **Summary:** [View Summary](${reportUrl}/SUMMARY.md)
 
 ---
 
-✅ All temporary files have been cleaned up
-✅ Documentation has been generated
-✅ Files are organized for easy access`;
+✅ Code files modified in-place (not copied)
+✅ Artifacts stored in issue directory
+✅ All temporary files cleaned up
+✅ Documentation generated`;
 
         await this.postComment(issue.number, summary);
     }
@@ -437,7 +467,12 @@ ${files.map(f => `- \`${f}\``).join('\n')}
     async handleIssueCompletion(issue) {
         const labels = issue.labels?.map(l => l.name) || [];
         
-        if (labels.includes('auto-close-on-complete') && !labels.includes('keep-open')) {
+        // Check if this is a bug issue - bugs should NOT be auto-closed
+        const isBugIssue = labels.includes('bug') || 
+                          issue.title.toLowerCase().includes('[bug]') ||
+                          issue.body?.toLowerCase().includes('**describe the bug**');
+        
+        if (labels.includes('auto-close-on-complete') && !labels.includes('keep-open') && !isBugIssue) {
             await this.postComment(issue.number, `🔔 **Auto-Close Notice**
 
 This issue will be automatically closed in 60 seconds.
@@ -464,6 +499,17 @@ To prevent closure, add the \`keep-open\` label.`);
 
 This issue has been automatically closed after successful completion.`);
             }
+        } else if (isBugIssue) {
+            // For bug issues, add a note but keep them open
+            await this.postComment(issue.number, `🐛 **Bug Fix Complete**
+
+The bug has been fixed and the changes have been implemented.
+
+**Note:** Bug issues remain open for verification and tracking purposes.
+
+To close this issue:
+- Verify the fix is working as expected
+- Close manually if satisfied with the resolution`);
         }
         
         await this.updateIssueLabels(issue.number, 

@@ -1,0 +1,27 @@
+{
+  "issueNumber": 13,
+  "title": "[BUG] Human comment improvements",
+  "createdAt": "2025-07-06T19:54:44Z",
+  "processedAt": "2025-07-06T20:06:08.934Z",
+  "labels": [
+    "bug",
+    "needs-triage",
+    "in-progress",
+    "swarm-active"
+  ],
+  "state": "open",
+  "files": [
+    {
+      "path": "/workspaces/devtemplate/.devcontainer/github-workflow/issues/issue-13/claude-prompt.txt",
+      "type": ".txt",
+      "createdAt": "2025-07-06T20:06:09.897Z"
+    },
+    {
+      "path": "/workspaces/devtemplate/.devcontainer/github-workflow/issues/issue-13/SUMMARY.md",
+      "type": "summary",
+      "createdAt": "2025-07-06T20:10:58.513Z"
+    }
+  ],
+  "modifiedFiles": [],
+  "artifacts": []
+}

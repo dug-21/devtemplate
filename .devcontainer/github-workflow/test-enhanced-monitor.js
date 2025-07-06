@@ -71,7 +71,7 @@ async function testMonitorConfiguration() {
     console.log('Testing monitor configuration...');
     
     // Check if integrated monitor exists
-    const monitorPath = path.join(__dirname, 'monitor-enhanced-v3-integrated.js');
+    const monitorPath = path.join(__dirname, 'monitor-enhanced.js');
     await fs.access(monitorPath);
     
     // Read and verify key features
@@ -138,7 +138,7 @@ async function testStartScript() {
     console.log('Testing start script...');
     
     // Check if start script exists
-    const startScriptPath = path.join(__dirname, 'start-enhanced-v3-integrated.sh');
+    const startScriptPath = path.join(__dirname, 'start-enhanced-monitor.sh');
     await fs.access(startScriptPath);
     
     // Verify it's executable
@@ -153,7 +153,7 @@ async function testStartScript() {
         'cd "$(dirname "$0")"', // Changes to correct directory
         'AGENT_TOKEN', // Token check
         'claude mcp list', // MCP status check
-        'monitor-enhanced-v3-integrated.js' // Runs correct monitor
+        'monitor-enhanced.js' // Runs correct monitor
     ];
     
     for (const check of requiredChecks) {

@@ -1,49 +1,80 @@
 #!/bin/bash
 
-echo "🐝 Starting Enhanced GitHub Workflow Monitor with ruv-swarm"
-echo "=================================================="
+# Enhanced V3 Monitor with MCP Integration and File Organization
+# Features:
+# - GitHub issue monitoring with rate limit protection
+# - MCP server health monitoring
+# - Proper file organization
+# - Automatic reconnection for MCP
 
-# Check for agent token (automation should use AGENT_TOKEN)
-if [[ -z "$AGENT_TOKEN" ]]; then
-    echo "❌ Error: No agent token found!"
-    echo "Please set AGENT_TOKEN for automation use"
-    echo "(GITHUB_PAT should only be used by VSCode/human)"
+echo "🚀 Starting Enhanced GitHub Monitor V3 with MCP Integration..."
+echo "📁 File organization: ENABLED"
+echo "🔌 MCP monitoring: ENABLED"
+echo "⏱️  Rate limit protection: ENABLED (30s delays)"
+echo ""
+
+# Change to the script's directory
+cd "$(dirname "$0")"
+
+# Check if Node.js is installed
+if ! command -v node &> /dev/null; then
+    echo "❌ Error: Node.js is not installed"
     exit 1
 fi
 
-# Change to the workflow directory
-cd /workspaces/devtemplate/.devcontainer/github-workflow
-
-# Stop any existing monitor
-echo "🛑 Stopping any existing monitors..."
-pkill -f "node.*monitor" 2>/dev/null || true
-sleep 2
-
-# Use the enhanced versions
-if [ ! -f "config-enhanced.json" ]; then
-    echo "❌ Error: config-enhanced.json not found!"
+# Check if token is set
+if [ -z "$AGENT_TOKEN" ] && [ -z "$GITHUB_TOKEN" ]; then
+    echo "❌ Error: Neither AGENT_TOKEN nor GITHUB_TOKEN is set"
+    echo "Please set one of these environment variables with your GitHub token"
     exit 1
 fi
 
-# Copy enhanced config to config.json for compatibility
-cp config-enhanced.json config.json
+# Check if Claude CLI is available
+if ! command -v claude &> /dev/null; then
+    echo "⚠️  Warning: Claude CLI not found. MCP monitoring will be limited."
+    echo "Install Claude CLI for full MCP integration support."
+fi
 
-echo "🚀 Starting enhanced monitor with:"
-echo "  - Parallel swarm processing ⚡"
-echo "  - Issue tracking to prevent reprocessing 📊"
-echo "  - GitHub Projects support 📋"
-echo "  - Draft/label filtering 🏷️"
-echo ""
+# Install dependencies if needed
+if [ ! -d "node_modules" ]; then
+    echo "📦 Installing dependencies..."
+    npm install @octokit/rest
+fi
 
-# Start the enhanced monitor
-nohup node monitor-enhanced.js > monitor.log 2>&1 &
-MONITOR_PID=$!
+# Create required directories
+echo "📁 Creating directory structure..."
+mkdir -p issues archive .temp orphaned-files logs tests
 
-echo "✅ Monitor started with PID: $MONITOR_PID"
+# Run file organization for issue-9 if requested
+if [ "$1" = "--organize-issue-9" ]; then
+    echo "📂 Organizing files from issue-9..."
+    node file-organization-v3.js 9
+    echo ""
+fi
+
+# Check MCP server status
+echo "🔌 Checking MCP server status..."
+if command -v claude &> /dev/null; then
+    claude mcp list 2>/dev/null | grep -q "ruv-swarm"
+    if [ $? -eq 0 ]; then
+        echo "✅ MCP server 'ruv-swarm' is connected"
+    else
+        echo "⚠️  MCP server 'ruv-swarm' is not connected"
+        echo "  You can add it with: claude mcp add ruv-swarm npx ruv-swarm mcp start"
+    fi
+else
+    echo "⚠️  Claude CLI not available, skipping MCP check"
+fi
+
 echo ""
-echo "📝 Commands:"
-echo "  - View logs: tail -f monitor.log"
-echo "  - Stop monitor: pkill -f 'node.*monitor'"
-echo "  - Check status: ps aux | grep monitor"
-echo ""
-echo "🐝 The swarm is ready to process your GitHub issues!"
+echo "✅ Starting integrated monitor..."
+echo "---"
+
+# Check if the monitor exists
+if [ -f "monitor-enhanced.js" ]; then
+    node monitor-enhanced.js
+else
+    echo "❌ Error: monitor-enhanced.js not found"
+    echo "Please ensure the monitor script exists in the current directory"
+    exit 1
+fi

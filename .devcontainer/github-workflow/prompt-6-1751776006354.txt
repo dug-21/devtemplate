@@ -1,0 +1,121 @@
+You need to analyze GitHub issue #6 and post your findings directly to the issue.
+
+IMPORTANT: You have access to both ruv-swarm MCP tools AND GitHub MCP tools. Your job is to:
+1. Use ruv-swarm tools to coordinate a multi-perspective analysis
+2. Use GitHub MCP tools to post updates as you progress
+
+Issue Details:
+- Repository: dug-21/devtemplate
+- Issue Number: 6
+- Title: Research Autonomous AI customer Discovery
+- Body: ### Research Topic
+
+Autonomous AI Customer Discover
+
+### Research Questions
+
+I'm considering launching a startup busienss, and one of the first objectives is to get out and talk to customers and have them explain their problem in their own words without bias.. to make sure that people will purchase what you are building.  I've heard about people using AI for customer discovery.  I'd like to hear more about it to see how/if I could integrate this into my busienss.
+
+### Success Criteria
+
+Analsysis is completed regarding the use of AI in customer discovery
+
+### Background Context
+
+_No response_
+
+### Research Methods
+
+- [ ] Literature review / documentation study
+- [ ] Competitive analysis
+- [ ] Technical proof of concept
+- [x] User feedback gathering
+- [ ] Performance/security analysis
+- [ ] Cost-benefit analysis
+
+### Timeline
+
+_No response_
+- Labels: swarm-processed
+
+STEP-BY-STEP INSTRUCTIONS:
+
+1. First, post that you're starting the analysis:
+   mcp__github__add_issue_comment({
+     owner: "dug-21",
+     repo: "devtemplate",
+     issue_number: 6,
+     body: "🔍 **Starting Detailed Analysis**\n\nI'm now analyzing your issue from multiple perspectives..."
+   })
+
+2. Initialize ruv-swarm for coordination (use BatchTool - single message):
+   - mcp__ruv-swarm__swarm_init({ topology: "hierarchical", maxAgents: 4 })
+   - mcp__ruv-swarm__agent_spawn({ type: "researcher", name: "Context Researcher" })
+   - mcp__ruv-swarm__agent_spawn({ type: "analyst", name: "Requirements Analyst" })
+   - mcp__ruv-swarm__agent_spawn({ type: "architect", name: "Solution Designer" })
+   - mcp__ruv-swarm__agent_spawn({ type: "coordinator", name: "Synthesis Coordinator" })
+
+3. Store the issue context in memory:
+   mcp__ruv-swarm__memory_usage({
+     action: "store",
+     key: "issue/6/context",
+     value: { title: "Research Autonomous AI customer Discovery", body: "### Research Topic
+
+Autonomous AI Customer Discover
+
+### Research Questions
+
+I'm considering launching a startup busienss, and one of the first objectives is to get out and talk to customers and have them explain their problem in their own words without bias.. to make sure that people will purchase what you are building.  I've heard about people using AI for customer discovery.  I'd like to hear more about it to see how/if I could integrate this into my busienss.
+
+### Success Criteria
+
+Analsysis is completed regarding the use of AI in customer discovery
+
+### Background Context
+
+_No response_
+
+### Research Methods
+
+- [ ] Literature review / documentation study
+- [ ] Competitive analysis
+- [ ] Technical proof of concept
+- [x] User feedback gathering
+- [ ] Performance/security analysis
+- [ ] Cost-benefit analysis
+
+### Timeline
+
+_No response_", labels: ["swarm-processed"] }
+   })
+
+4. Orchestrate the analysis:
+   mcp__ruv-swarm__task_orchestrate({
+     task: "Analyze GitHub issue #6: Research Autonomous AI customer Discovery",
+     strategy: "adaptive"
+   })
+
+5. For this specific issue about "Research Autonomous AI customer Discovery", provide:
+   - Understanding of the core request
+   - Key requirements or goals
+   - Recommended approach or solution
+   - Potential challenges or considerations
+   - Clear next steps
+
+6. Post your analysis findings using GitHub MCP:
+   mcp__github__add_issue_comment({
+     owner: "dug-21",
+     repo: "devtemplate",
+     issue_number: 6,
+     body: "📊 **Analysis Results**\n\n[Your detailed findings here]"
+   })
+
+7. If appropriate, suggest labels for the issue:
+   mcp__github__update_issue({
+     owner: "dug-21",
+     repo: "devtemplate",
+     issue_number: 6,
+     labels: [existing labels + any new suggestions]
+   })
+
+Remember: Post multiple updates as you analyze different aspects. Don't wait until the end to post everything.

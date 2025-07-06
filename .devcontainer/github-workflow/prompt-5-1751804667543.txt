@@ -1,0 +1,90 @@
+You are working on GitHub issue #5 with ENHANCED real-time monitoring.
+
+CRITICAL: You MUST provide frequent progress updates that will be posted to GitHub.
+
+Issue Details:
+- Repository: dug-21/devtemplate
+- Issue #5: Brand new idea
+- Description: ### Idea Title
+
+Looking for a new idea for application
+
+### Problem Statement
+
+So I'm looking for a new idea for an application... The concept that I'm considering is how advanced small neural networks could be used on the edge that was never possible before they were minimized down to about 10Mb in size and operate in miliseconds.  What can be achieved?  Whats the value to humans?
+
+### Initial Thoughts
+
+I'm thinking of ways to help humans in some way shape or form as a principle.  I'm looking for creating, out there ideas that maybe no one has ever concieve before.. OR, it could be addressing a very common complaint or problem that people have.
+
+### Research Areas
+
+- [x] Technical feasibility
+- [x] User experience impact
+- [ ] Resource requirements
+- [ ] Similar solutions analysis
+- [x] Market research
+
+### Initial Priority
+
+Low - Nice to have
+- Labels: swarm-processed, in-progress, swarm-active
+
+MANDATORY WORKFLOW WITH PROGRESS TRACKING:
+
+1. INITIALIZATION (Post immediately):
+   mcp__github__add_issue_comment({
+     owner: "dug-21",
+     repo: "devtemplate",
+     issue_number: 5,
+     body: "🔄 **Phase 1/4: Initialization**\n\n- Setting up ruv-swarm coordination\n- Analyzing issue requirements\n- Planning approach\n\n**Progress:** 10%"
+   })
+
+2. SWARM SETUP (Single BatchTool message):
+   - mcp__ruv-swarm__swarm_init({ topology: "hierarchical", maxAgents: 6, strategy: "parallel" })
+   - mcp__ruv-swarm__agent_spawn({ type: "analyst", name: "Requirements Analyst" })
+   - mcp__ruv-swarm__agent_spawn({ type: "architect", name: "Solution Architect" })
+   - mcp__ruv-swarm__agent_spawn({ type: "coder", name: "Implementation Lead" })
+   - mcp__ruv-swarm__agent_spawn({ type: "tester", name: "QA Engineer" })
+   - mcp__ruv-swarm__agent_spawn({ type: "coordinator", name: "Progress Tracker" })
+   - mcp__ruv-swarm__memory_usage({ action: "store", key: "issue/5/start", value: { phase: "analysis" } })
+
+3. ANALYSIS PHASE (Post progress):
+   mcp__github__add_issue_comment({
+     owner: "dug-21",
+     repo: "devtemplate",
+     issue_number: 5,
+     body: "🔄 **Phase 2/4: Analysis**\n\n- ✅ Swarm initialized with 6 agents\n- 🔄 Analyzing requirements...\n- 🔄 Researching best practices...\n\n**Progress:** 25%"
+   })
+
+4. AFTER ANALYSIS (Post findings):
+   mcp__github__add_issue_comment({
+     owner: "dug-21",
+     repo: "devtemplate",
+     issue_number: 5,
+     body: "📊 **Analysis Complete**\n\n[Your detailed analysis findings]\n\n**Key Points:**\n- [Point 1]\n- [Point 2]\n\n**Progress:** 40%"
+   })
+
+5. IMPLEMENTATION PHASE (Post updates during coding):
+   - Post when starting implementation (50%)
+   - Post when creating files (60%)
+   - Post when adding features (70%)
+   - Post when testing (80%)
+   - Post when completing (90%)
+
+6. COMPLETION (Post final summary):
+   mcp__github__add_issue_comment({
+     owner: "dug-21",
+     repo: "devtemplate",
+     issue_number: 5,
+     body: "✅ **Implementation Complete**\n\n**Summary:**\n[What was done]\n\n**Files Created/Modified:**\n- [List files]\n\n**Tests:**\n- [Test results]\n\n**Progress:** 100%\n\n---\n*This issue will be automatically closed in 60 seconds unless labeled with `keep-open`*"
+   })
+
+SPECIFIC TASK: Brand new idea
+
+Remember to:
+- Post progress updates frequently (every major step)
+- Use BatchTool for parallel operations
+- Store progress in ruv-swarm memory
+- Include specific details in updates
+- Test everything before marking complete

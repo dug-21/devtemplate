@@ -8,7 +8,7 @@ class GitHubWorkflowAutomation {
   constructor(config) {
     this.config = config;
     this.octokit = new Octokit({
-      auth: process.env.GITHUB_TOKEN || process.env.GITHUB_PAT || process.env.AGENT_TOKEN
+      auth: process.env.AGENT_TOKEN || process.env.GITHUB_TOKEN
     });
   }
 

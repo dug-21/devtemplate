@@ -1,0 +1,90 @@
+[
+  [
+    "2-2025-07-06T01:14:18Z-research",
+    {
+      "timestamp": "2025-07-06T01:52:40.387Z",
+      "phase": "research",
+      "results": {
+        "swarmId": "swarm-1751765270462",
+        "phase": "research",
+        "initiated": true
+      }
+    }
+  ],
+  [
+    "6-2025-07-06T02:50:34Z-research",
+    {
+      "timestamp": "2025-07-06T02:55:21.409Z",
+      "phase": "research",
+      "results": {
+        "swarmId": "swarm-1751770521409",
+        "phase": "research",
+        "initiated": true
+      }
+    }
+  ],
+  [
+    "6-2025-07-06T02:55:21Z-research",
+    {
+      "timestamp": "2025-07-06T03:00:22.464Z",
+      "phase": "research",
+      "results": {
+        "swarmId": "swarm-1751770822464",
+        "phase": "research",
+        "initiated": true
+      }
+    }
+  ],
+  [
+    "6-2025-07-06T03:00:22Z-research",
+    {
+      "timestamp": "2025-07-06T03:05:23.538Z",
+      "phase": "research",
+      "results": {
+        "swarmId": "swarm-1751771123538",
+        "phase": "research",
+        "initiated": true
+      }
+    }
+  ],
+  [
+    "6-2025-07-06T03:05:23Z-research",
+    {
+      "timestamp": "2025-07-06T03:10:24.686Z",
+      "phase": "research",
+      "results": {
+        "swarmId": "swarm-1751771424686",
+        "phase": "research",
+        "initiated": true
+      }
+    }
+  ],
+  [
+    "6-2025-07-06T03:10:24Z-research",
+    {
+      "timestamp": "2025-07-06T03:15:25.718Z",
+      "phase": "research",
+      "results": {
+        "swarmId": "swarm-1751771725718",
+        "phase": "research",
+        "initiated": true
+      }
+    }
+  ],
+  [
+    "6-2025-07-06T03:21:49Z",
+    {
+      "issueNumber": 6,
+      "phase": "research",
+      "processedAt": "2025-07-06T03:34:38.052Z"
+    }
+  ],
+  [
+    "6-2025-07-06T03:34:37Z",
+    {
+      "issueNumber": 6,
+      "phase": "research",
+      "processedAt": "2025-07-06T03:39:42.733Z"
+    }
+  ]
+]

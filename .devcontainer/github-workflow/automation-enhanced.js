@@ -15,6 +15,8 @@ const fs = require('fs').promises;
 const path = require('path');
 const EventEmitter = require('events');
 const FileOrganization = require('./file-organization');
+const AIAttribution = require('./ai-attribution');
+const EnhancedGitHubClient = require('./enhanced-github-client');
 
 class EnhancedGitHubAutomation extends EventEmitter {
     constructor(config) {
@@ -23,10 +25,18 @@ class EnhancedGitHubAutomation extends EventEmitter {
         this.octokit = new Octokit({
             auth: config.github.token || process.env.AGENT_TOKEN || process.env.GITHUB_TOKEN
         });
+        
+        // Enhanced client for AI attribution
+        this.enhancedClient = new EnhancedGitHubClient(this.octokit, config);
+        
         this.fileOrg = new FileOrganization();
         this.logFile = path.join(__dirname, 'automation-enhanced-v3.log');
         this.activeIssues = new Map();
         this.updateInterval = 30000;
+        
+        // Track agent context
+        this.agentType = 'AUTOMATION';
+        this.sessionId = `session-${Date.now()}`;
     }
 
     async initialize() {

@@ -261,6 +261,7 @@ Remember to post updates frequently!`;
             const command = `claude --print --dangerously-skip-permissions --mcp-config "${mcpConfigPath}" < "${promptPath}"`;
             
             tracking.phase = 'claude-running';
+            this.usingClaude = true; // Set flag for attribution
             
             const result = execSync(command, {
                 encoding: 'utf8',
@@ -361,14 +362,38 @@ ${files.map(f => `- \`${f}\``).join('\n')}
         }
     }
 
-    async postComment(issueNumber, body) {
-        const { data } = await this.octokit.issues.createComment({
-            owner: this.config.github.owner,
-            repo: this.config.github.repo,
-            issue_number: issueNumber,
-            body
+    async postComment(issueNumber, body, options = {}) {
+        // Use enhanced client for AI attribution
+        return this.enhancedClient.postComment(issueNumber, body, {
+            agentType: this.getAgentType(),
+            sessionId: this.sessionId,
+            phase: this.currentPhase,
+            ...options
         });
-        return data;
+    }
+    
+    getAgentType() {
+        // Check for specific agent context
+        if (this.agentType) return this.agentType;
+        
+        // Check for swarm context
+        if (this.swarmRole) {
+            switch(this.swarmRole) {
+                case 'researcher': return 'SWARM_RESEARCHER';
+                case 'coder': return 'SWARM_CODER';
+                case 'analyst': return 'SWARM_ANALYST';
+                case 'coordinator': return 'SWARM_COORDINATOR';
+                default: return 'RUV_SWARM';
+            }
+        }
+        
+        // Check for Claude context
+        if (process.env.CLAUDE_CONTEXT === 'true' || this.usingClaude) {
+            return 'CLAUDE';
+        }
+        
+        // Default to automation
+        return 'AUTOMATION';
     }
 
     async updateIssueLabels(issueNumber, addLabels, removeLabels = []) {

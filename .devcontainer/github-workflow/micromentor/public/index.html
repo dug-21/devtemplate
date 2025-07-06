@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MicroMentor - Personal Cognitive Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px 0;
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .status-active {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .status-inactive {
+            background: #f44336;
+            color: white;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .card h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+        
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        
+        .metric-label {
+            font-weight: 500;
+            color: #666;
+        }
+        
+        .metric-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .emotion-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 15px;
+            background: #e3f2fd;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        
+        .emotion-icon {
+            font-size: 30px;
+        }
+        
+        .recommendation {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 15px;
+        }
+        
+        .recommendation h3 {
+            color: #e65100;
+            margin-bottom: 10px;
+        }
+        
+        .framework-steps {
+            list-style: none;
+            counter-reset: step;
+            margin-top: 15px;
+        }
+        
+        .framework-steps li {
+            counter-increment: step;
+            position: relative;
+            padding-left: 35px;
+            margin-bottom: 10px;
+        }
+        
+        .framework-steps li::before {
+            content: counter(step);
+            position: absolute;
+            left: 0;
+            top: 0;
+            background: #2196F3;
+            color: white;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #2196F3;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #1976D2;
+        }
+        
+        .btn-secondary {
+            background: #757575;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #616161;
+        }
+        
+        .monitoring-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: #e8f5e9;
+            border-radius: 20px;
+            color: #2e7d32;
+            font-weight: 500;
+        }
+        
+        .pulse {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            background: #4CAF50;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(76, 175, 80, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(76, 175, 80, 0);
+            }
+        }
+        
+        .privacy-notice {
+            background: #e1f5fe;
+            border: 1px solid #0288d1;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        
+        .privacy-notice h4 {
+            color: #01579b;
+            margin-bottom: 10px;
+        }
+        
+        .demo-scenario {
+            background: #f3e5f5;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        
+        .demo-scenario h3 {
+            color: #4a148c;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>
+                🧠 MicroMentor
+                <span class="status-badge status-active">Edge AI Active</span>
+            </h1>
+            <p>Your Personal Cognitive Assistant - Running 100% on-device</p>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="grid">
+            <!-- Real-time Monitoring -->
+            <div class="card">
+                <h2>Real-time Analysis</h2>
+                <div class="emotion-indicator">
+                    <span class="emotion-icon">😌</span>
+                    <div>
+                        <strong>Current State: Neutral</strong>
+                        <div>Confidence: 87%</div>
+                    </div>
+                </div>
+                
+                <div class="metric">
+                    <span class="metric-label">Inference Time</span>
+                    <span class="metric-value">68ms</span>
+                </div>
+                
+                <div class="metric">
+                    <span class="metric-label">Fatigue Level</span>
+                    <span class="metric-value">Low</span>
+                </div>
+                
+                <div class="monitoring-indicator">
+                    <span class="pulse"></span>
+                    Monitoring Active
+                </div>
+            </div>
+
+            <!-- Decision Support -->
+            <div class="card">
+                <h2>Decision Framework</h2>
+                <div class="recommendation">
+                    <h3>Quick Decision Matrix</h3>
+                    <p>Recommended for your current state</p>
+                    <ol class="framework-steps">
+                        <li>List top 3 options</li>
+                        <li>Rate each on gut feeling (1-5)</li>
+                        <li>Choose highest rated</li>
+                    </ol>
+                    <p><strong>Time estimate:</strong> 2 minutes</p>
+                </div>
+                
+                <div class="controls">
+                    <button class="btn-primary" onclick="getRecommendation()">
+                        Get Recommendation
+                    </button>
+                    <button class="btn-secondary" onclick="showAlternatives()">
+                        Alternative Approaches
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Performance Metrics -->
+        <div class="card">
+            <h2>Edge AI Performance</h2>
+            <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+                <div class="metric">
+                    <span class="metric-label">Model Size</span>
+                    <span class="metric-value">8.7MB</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Avg Latency</span>
+                    <span class="metric-value">65ms</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Accuracy</span>
+                    <span class="metric-value">89%</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Battery Impact</span>
+                    <span class="metric-value">&lt;2%/hr</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Privacy Notice -->
+        <div class="privacy-notice">
+            <h4>🔒 Privacy First</h4>
+            <p>All processing happens on your device. No data is sent to the cloud. Your cognitive patterns and decision history stay completely private.</p>
+        </div>
+
+        <!-- Demo Scenario -->
+        <div class="demo-scenario">
+            <h3>Try a Demo Scenario</h3>
+            <p>Experience how MicroMentor helps with real decisions:</p>
+            <div class="controls">
+                <button class="btn-primary" onclick="runDemoScenario('job')">
+                    Job Offer Decision
+                </button>
+                <button class="btn-primary" onclick="runDemoScenario('purchase')">
+                    Major Purchase
+                </button>
+                <button class="btn-primary" onclick="runDemoScenario('relationship')">
+                    Relationship Choice
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // WebSocket connection for real-time updates
+        const ws = new WebSocket(`ws://localhost:3000`);
+        
+        ws.onmessage = (event) => {
+            const message = JSON.parse(event.data);
+            
+            switch (message.type) {
+                case 'analysis':
+                    updateAnalysis(message.data);
+                    break;
+                case 'intervention':
+                    showIntervention(message.data);
+                    break;
+                case 'recommendation':
+                    displayRecommendation(message.data);
+                    break;
+            }
+        };
+
+        function updateAnalysis(data) {
+            // Update UI with real-time analysis data
+            console.log('Analysis update:', data);
+        }
+
+        function showIntervention(data) {
+            // Show fatigue intervention recommendation
+            alert(`Recommendation: ${data.suggestion}`);
+        }
+
+        function getRecommendation() {
+            // Request decision recommendation
+            ws.send(JSON.stringify({
+                type: 'get-recommendation',
+                context: {
+                    currentDecision: {
+                        description: 'Current decision context'
+                    },
+                    emotionalState: {
+                        primary: 'neutral',
+                        confidence: 0.87
+                    }
+                }
+            }));
+        }
+
+        function showAlternatives() {
+            alert('Alternative decision frameworks available based on your preferences');
+        }
+
+        function runDemoScenario(scenario) {
+            const scenarios = {
+                job: {
+                    description: 'Should I accept the new job offer?',
+                    stakeholders: ['family', 'current employer'],
+                    deadline: '2 days',
+                    reversible: false,
+                    impact: 'high'
+                },
+                purchase: {
+                    description: 'Should I buy this house?',
+                    stakeholders: ['spouse', 'financial advisor'],
+                    deadline: '1 week',
+                    reversible: false,
+                    impact: 'high'
+                },
+                relationship: {
+                    description: 'Should I move in with my partner?',
+                    stakeholders: ['partner', 'family'],
+                    deadline: '1 month',
+                    reversible: true,
+                    impact: 'medium'
+                }
+            };
+
+            ws.send(JSON.stringify({
+                type: 'get-recommendation',
+                context: {
+                    currentDecision: scenarios[scenario],
+                    emotionalState: {
+                        primary: 'stressed',
+                        confidence: 0.75
+                    },
+                    history: []
+                }
+            }));
+        }
+
+        function displayRecommendation(data) {
+            console.log('Recommendation received:', data);
+            // Update UI with recommendation
+        }
+
+        // Start monitoring on page load
+        ws.onopen = () => {
+            ws.send(JSON.stringify({
+                type: 'start-monitoring',
+                options: {
+                    camera: false, // Disabled for demo
+                    biometrics: false
+                }
+            }));
+        };
+    </script>
+</body>
+</html>

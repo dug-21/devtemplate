@@ -1,0 +1,17 @@
+{
+  "issue": {
+    "number": 5,
+    "title": "Brand new idea",
+    "body": "### Idea Title\n\nLooking for a new idea for application\n\n### Problem Statement\n\nSo I'm looking for a new idea for an application... The concept that I'm considering is how advanced small neural networks could be used on the edge that was never possible before they were minimized down to about 10Mb in size and operate in miliseconds.  What can be achieved?  Whats the value to humans?\n\n### Initial Thoughts\n\nI'm thinking of ways to help humans in some way shape or form as a principle.  I'm looking for creating, out there ideas that maybe no one has ever concieve before.. OR, it could be addressing a very common complaint or problem that people have.\n\n### Research Areas\n\n- [x] Technical feasibility\n- [x] User experience impact\n- [ ] Resource requirements\n- [ ] Similar solutions analysis\n- [x] Market research\n\n### Initial Priority\n\nLow - Nice to have",
+    "url": "https://github.com/dug-21/devtemplate/issues/5",
+    "author": "dug-21",
+    "labels": []
+  },
+  "phase": "idea",
+  "repository": "dug-21/devtemplate",
+  "requirements": [
+    "feasibility analysis",
+    "complexity assessment",
+    "recommendations"
+  ]
+}

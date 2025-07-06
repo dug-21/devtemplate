@@ -1,0 +1,11 @@
+Please post a comment to GitHub issue #6 in repository dug-21/devtemplate.
+
+Use the GitHub MCP tool:
+mcp__github__add_issue_comment({
+  owner: "dug-21",
+  repo: "devtemplate", 
+  issue_number: 6,
+  body: "🤖 **Claude Analysis Test**\n\nThis is a test comment posted by Claude using GitHub MCP tools.\n\nIf you see this, it means Claude can successfully post to GitHub issues!"
+})
+
+After posting, just say "Done."

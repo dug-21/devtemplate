@@ -46,9 +46,10 @@
   },
   "filtering": {
     "ignoreDrafts": true,
-    "ignoreLabels": ["automation:ignore", "no-automation", "wip", "swarm-processed"],
+    "ignoreLabels": ["automation:ignore", "no-automation", "wip", "swarm-in-progress", "swarm-processed"],
     "requireLabels": [],
     "processOnlyPhases": [],
+    "inProgressLabel": "swarm-in-progress",
     "completionLabel": "swarm-processed",
     "autoCloseLabel": "auto-close-on-complete",
     "keepOpenLabel": "keep-open"

@@ -1,0 +1,18 @@
+{
+  "issue": {
+    "number": 6,
+    "title": "Research Autonomous AI customer Discovery",
+    "body": "### Research Topic\n\nAutonomous AI Customer Discover\n\n### Research Questions\n\nI'm considering launching a startup busienss, and one of the first objectives is to get out and talk to customers and have them explain their problem in their own words without bias.. to make sure that people will purchase what you are building.  I've heard about people using AI for customer discovery.  I'd like to hear more about it to see how/if I could integrate this into my busienss.\n\n### Success Criteria\n\nAnalsysis is completed regarding the use of AI in customer discovery\n\n### Background Context\n\n_No response_\n\n### Research Methods\n\n- [ ] Literature review / documentation study\n- [ ] Competitive analysis\n- [ ] Technical proof of concept\n- [x] User feedback gathering\n- [ ] Performance/security analysis\n- [ ] Cost-benefit analysis\n\n### Timeline\n\n_No response_",
+    "url": "https://github.com/dug-21/devtemplate/issues/6",
+    "author": "dug-21",
+    "labels": []
+  },
+  "phase": "research",
+  "repository": "dug-21/devtemplate",
+  "requirements": [
+    "best practices",
+    "comparison matrix",
+    "pros/cons analysis",
+    "recommendations"
+  ]
+}

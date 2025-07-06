@@ -1,0 +1,32 @@
+{
+  "name": "micromentor",
+  "version": "1.0.0",
+  "description": "Personal Cognitive Assistant - Edge AI for decision support",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "test": "jest",
+    "build": "webpack --mode production",
+    "train": "python src/training/train_model.py",
+    "convert": "tensorflowjs_converter --input_format keras models/micromentor_model.h5 models/tfjs/"
+  },
+  "keywords": ["edge-ai", "cognitive-assistant", "tensorflow-lite", "decision-support"],
+  "author": "MicroMentor Team",
+  "license": "MIT",
+  "dependencies": {
+    "@tensorflow/tfjs-node": "^4.10.0",
+    "@tensorflow/tfjs-converter": "^4.10.0",
+    "express": "^4.18.2",
+    "face-api.js": "^0.22.2",
+    "node-webcam": "^0.8.0",
+    "sqlite3": "^5.1.6",
+    "ws": "^8.13.0"
+  },
+  "devDependencies": {
+    "jest": "^29.5.0",
+    "nodemon": "^2.0.22",
+    "webpack": "^5.88.0",
+    "webpack-cli": "^5.1.4"
+  }
+}

@@ -1,31 +1,37 @@
 {
   "github": {
-    "owner": "YOUR_GITHUB_USERNAME",
-    "repo": "YOUR_REPO_NAME",
+    "owner": "dug-21",
+    "repo": "devtemplate",
     "pollInterval": 300000,
-    "enabled": true
+    "enabled": true,
+    "projectNumber": null,
+    "projectColumnId": null
   },
   "phases": {
     "idea": {
       "agents": ["researcher", "analyst"],
+      "topology": "mesh",
       "strategy": "research",
       "autoAdvance": false,
       "nextPhase": "research"
     },
     "research": {
       "agents": ["researcher", "analyst", "coordinator"],
+      "topology": "hierarchical",
       "strategy": "analysis",
       "autoAdvance": true,
       "nextPhase": "planning"
     },
     "planning": {
       "agents": ["analyst", "coder", "coordinator"],
+      "topology": "hierarchical",
       "strategy": "planning",
       "autoAdvance": false,
       "nextPhase": "implementation"
     },
     "implementation": {
       "agents": ["coder", "tester", "coordinator"],
+      "topology": "star",
       "strategy": "development",
       "autoAdvance": false,
       "nextPhase": "testing"
@@ -35,11 +41,22 @@
     "welcomeNewIssues": true,
     "autoLabel": true,
     "postUpdates": true,
-    "triggerSwarms": true
+    "triggerSwarms": true,
+    "processingDelay": 2000
+  },
+  "filtering": {
+    "ignoreDrafts": true,
+    "ignoreLabels": ["automation:ignore", "no-automation", "wip"],
+    "requireLabels": [],
+    "processOnlyPhases": [],
+    "completionLabel": "swarm-processed",
+    "autoCloseLabel": "auto-close-on-complete",
+    "keepOpenLabel": "keep-open"
   },
   "templates": {
-    "welcome": "👋 Thanks for opening this issue! Our GitHub workflow automation has been activated.",
-    "swarmActivated": "🐝 A {phase} swarm has been deployed to analyze this issue.",
-    "analysisComplete": "✅ Swarm analysis complete. See results above."
+    "welcome": "👋 Thanks for opening this issue! Our enhanced GitHub workflow automation will process this with a dedicated swarm.",
+    "swarmActivated": "🐝 A dedicated {phase} swarm has been deployed to analyze this issue.",
+    "analysisComplete": "✅ Swarm analysis complete. See comprehensive results above.",
+    "error": "❌ An error occurred during processing. The team has been notified."
   }
 }

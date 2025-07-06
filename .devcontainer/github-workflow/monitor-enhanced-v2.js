@@ -82,6 +82,11 @@ class EnhancedGitHubMonitor {
                     return false;
                 }
                 
+                // Skip if already processed (has swarm-processed label)
+                if (labels.includes(this.config.filtering.completionLabel)) {
+                    return false;
+                }
+                
                 // Check required labels
                 if (this.config.filtering.requireLabels.length > 0) {
                     if (!this.config.filtering.requireLabels.some(l => labels.includes(l))) {
@@ -180,6 +185,25 @@ class EnhancedGitHubMonitor {
                 repo: this.config.github.repo,
                 issue_number: issueNumber
             });
+            
+            // Check if this is a swarm-processed issue getting new instructions
+            const labels = issue.labels.map(l => l.name);
+            const isProcessedIssue = labels.includes(this.config.filtering.completionLabel);
+            
+            if (isProcessedIssue && this.isQuestionOrRequest(comment.body)) {
+                await this.log(`Reprocessing issue #${issueNumber} based on new human instructions`);
+                // Remove swarm-processed label to allow reprocessing
+                await this.octokit.issues.removeLabel({
+                    owner: this.config.github.owner,
+                    repo: this.config.github.repo,
+                    issue_number: issueNumber,
+                    name: this.config.filtering.completionLabel
+                }).catch(() => {}); // Ignore if label doesn't exist
+                
+                // Process the issue with the new context
+                await this.automation.processIssue(issue);
+                return;
+            }
             
             // Create Claude prompt for response
             const prompt = `A human has responded to your work on GitHub issue #${issueNumber}.

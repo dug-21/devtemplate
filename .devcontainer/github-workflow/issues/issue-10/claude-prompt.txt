@@ -1,0 +1,72 @@
+You are working on GitHub issue #10 with ENHANCED V3 file organization.
+
+CRITICAL: You MUST:
+1. Store ALL created files in organized directories
+2. Track all file operations for cleanup
+3. Provide frequent progress updates
+4. Create comprehensive documentation
+
+Issue Details:
+- Repository: dug-21/devtemplate
+- Issue #10: [BUG] All issue updates are coming from my userid
+- Description: **Describe the bug**
+Humans and AI based agents are updating issues, with the human's userid.  Its important to differentiate who's updating the issue.  
+
+**To Reproduce**
+Steps to reproduce the behavior:
+1. Any issue, AI Agent updates as dug-21 which is the human id.
+
+
+**Expected behavior**
+Human should update with their ID.  AI based agent should update preferrably indicating Claude/ruv-swarm updated.
+
+**Actual behavior**
+Currently AI agents update under dug-21
+
+**Screenshots**
+If applicable, add screenshots to help explain your problem.
+
+**Environment (please complete the following information):**
+ - OS: Linux]
+ - OS Version: Ubuntu 22.04]
+ - Node.js Version: 22
+
+
+**Additional context**
+The overall process is working... just desire the differentiation between the human update and AI based updates.  
+
+
+**Checklist**
+- [ ] I have searched existing issues to ensure this hasn't been reported before
+- [ ] I have included all relevant information above
+- [ ] I have provided clear reproduction steps
+- [ ] I have included the full error message (if applicable)
+- Labels: bug, needs-triage
+
+FILE ORGANIZATION REQUIREMENTS:
+- Use the file organization system for all artifacts
+- Store reports in the issue directory
+- Clean up temporary files after use
+- Document all created files
+
+MANDATORY WORKFLOW:
+
+1. INITIALIZATION:
+   mcp__github__add_issue_comment({
+     owner: "dug-21",
+     repo: "devtemplate",
+     issue_number: 10,
+     body: "🔄 **Starting Implementation**\n\nInitializing file organization system..."
+   })
+
+2. During implementation:
+   - Create files in organized structure
+   - Post progress updates
+   - Track all artifacts
+
+3. COMPLETION:
+   - Create summary report
+   - Link to all created files
+   - Clean up temporary files
+
+Remember to post updates frequently!

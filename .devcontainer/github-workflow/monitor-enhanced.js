@@ -17,10 +17,10 @@ class MCPServerMonitor extends EventEmitter {
         super();
         this.config = {
             serverName: 'ruv-swarm',
-            checkInterval: 60000, // Check every 60 seconds
-            reconnectDelay: 5000, // Wait 5 seconds before reconnecting
-            maxReconnectAttempts: 5,
-            healthCheckTimeout: 10000, // 10 second timeout for health checks
+            checkInterval: 300000, // Check every 5 minutes to reduce connection stress
+            reconnectDelay: 10000, // Wait 10 seconds before reconnecting
+            maxReconnectAttempts: 3, // Reduce attempts to avoid spam
+            healthCheckTimeout: 5000, // Reduced timeout for faster response
             ...config
         };
         
@@ -39,32 +39,49 @@ class MCPServerMonitor extends EventEmitter {
 
     async checkHealth() {
         try {
-            // Try to list MCP servers
-            const result = await this.executeCommand('claude mcp list', this.config.healthCheckTimeout);
+            // Try to list MCP servers with reduced timeout to avoid blocking
+            const result = await this.executeCommand('claude mcp list', 5000);
             
             // Check if our server is in the list
             const hasServer = result.includes(this.config.serverName);
             const wasHealthy = this.isHealthy;
             
-            this.isHealthy = hasServer;
+            // If server is not in list, try to add it automatically
+            if (!hasServer && (result.includes('No MCP servers configured') || result.trim() === '')) {
+                this.emit('info', 'MCP server not configured, attempting to add it...');
+                await this.autoConfigureMCP();
+                // Re-check after configuration
+                const rechecked = await this.executeCommand('claude mcp list', 5000);
+                const recheckHasServer = rechecked.includes(this.config.serverName);
+                this.isHealthy = recheckHasServer;
+            } else if (hasServer) {
+                // Server exists - consider it healthy without deep checking
+                // Deep feature checks can cause connection issues
+                this.isHealthy = true;
+                this.emit('info', 'MCP server is configured and available');
+            } else {
+                this.isHealthy = false;
+            }
+            
             this.lastHealthCheck = new Date();
             
-            if (!wasHealthy && hasServer) {
+            if (!wasHealthy && this.isHealthy) {
                 this.emit('reconnected');
                 this.metrics.totalReconnects++;
                 this.metrics.lastReconnect = new Date();
                 this.reconnectAttempts = 0;
-            } else if (wasHealthy && !hasServer) {
+            } else if (wasHealthy && !this.isHealthy) {
                 this.emit('disconnected');
                 this.metrics.totalDisconnects++;
                 this.metrics.lastDisconnect = new Date();
             }
             
-            return hasServer;
+            return this.isHealthy;
         } catch (error) {
-            this.isHealthy = false;
-            this.emit('error', error);
-            return false;
+            // Don't mark as unhealthy for transient errors
+            this.emit('info', `MCP health check skipped: ${error.message}`);
+            this.lastHealthCheck = new Date();
+            return this.isHealthy; // Keep previous state
         }
     }
 
@@ -80,6 +97,19 @@ class MCPServerMonitor extends EventEmitter {
         });
     }
 
+    async autoConfigureMCP() {
+        try {
+            this.emit('info', 'Auto-configuring MCP server...');
+            const command = `claude mcp add ${this.config.serverName} npx ruv-swarm mcp start`;
+            await this.executeCommand(command, this.config.healthCheckTimeout);
+            this.emit('info', 'MCP server configured successfully');
+            return true;
+        } catch (error) {
+            this.emit('error', new Error(`Failed to auto-configure MCP: ${error.message}`));
+            return false;
+        }
+    }
+
     async reconnect() {
         if (this.reconnectAttempts >= this.config.maxReconnectAttempts) {
             this.emit('max-reconnects-reached');
@@ -90,11 +120,19 @@ class MCPServerMonitor extends EventEmitter {
         this.emit('reconnecting', this.reconnectAttempts);
 
         try {
-            // Try to restart the MCP server
-            await this.executeCommand(
-                `claude mcp restart ${this.config.serverName}`,
-                this.config.healthCheckTimeout
-            );
+            // First check if server is configured
+            const listResult = await this.executeCommand('claude mcp list', this.config.healthCheckTimeout);
+            if (!listResult.includes(this.config.serverName)) {
+                // Server not configured, add it
+                await this.autoConfigureMCP();
+                await this.delay(this.config.reconnectDelay);
+            } else {
+                // Try to restart the MCP server
+                await this.executeCommand(
+                    `claude mcp restart ${this.config.serverName}`,
+                    this.config.healthCheckTimeout
+                );
+            }
             
             // Wait before checking health
             await this.delay(this.config.reconnectDelay);
@@ -171,6 +209,10 @@ class EnhancedGitHubMonitorV3 {
 
         this.mcpMonitor.on('error', async (error) => {
             await this.log(`MCP Error: ${error.message}`, 'ERROR');
+        });
+        
+        this.mcpMonitor.on('info', async (message) => {
+            await this.log(`MCP Info: ${message}`, 'INFO');
         });
     }
 
@@ -364,7 +406,6 @@ claude mcp restart ruv-swarm
         const lastCheck = await this.getLastCheckTime();
         // Add 30 second buffer to ensure we don't miss any comments
         const checkTime = new Date(lastCheck.getTime() - 30000);
-        const botUsername = await this.getBotUsername();
         
         await this.log(`Checking for new comments since ${checkTime.toISOString()} (with 30s buffer)`);
         await this.log(`Processed comments cache has ${this.processedComments.size} entries`);
@@ -384,11 +425,27 @@ claude mcp restart ruv-swarm
             for (const comment of comments) {
                 // Skip if already processed
                 if (this.processedComments.has(comment.id)) {
+                    await this.log(`Skipping comment ${comment.id} - already processed`);
                     continue;
                 }
                 
-                // Skip bot's own comments
-                if (comment.user.login === botUsername) {
+                // Skip actual GitHub bot comments and AI agent comments
+                const isActualBot = comment.user.type === 'Bot' || comment.user.login.includes('[bot]') || comment.user.login.endsWith('-bot');
+                const isAIAgentComment = comment.body.includes('⚙️ GitHub Automation | Powered by System') ||
+                                       comment.body.includes('🤖 Generated with [Claude Code]') || 
+                                       comment.body.includes('🐝 **Swarm Response**') ||
+                                       comment.body.includes('*This response was generated') ||
+                                       comment.body.includes('---\n*Generated by ruv-swarm') ||
+                                       comment.body.includes('Generated by ruv-swarm');
+                
+                if (isActualBot) {
+                    await this.log(`Skipping comment ${comment.id} - actual bot comment (@${comment.user.login}, type: ${comment.user.type})`);
+                    this.processedComments.add(comment.id);
+                    continue;
+                }
+                
+                if (isAIAgentComment) {
+                    await this.log(`Skipping comment ${comment.id} - AI agent comment (contains automation signature)`);
                     this.processedComments.add(comment.id);
                     continue;
                 }
@@ -428,13 +485,20 @@ claude mcp restart ruv-swarm
                             // Handle as a directive on active issue
                             await this.handleDirective(comment);
                         }
+                        
+                        // Only mark as processed after successful handling
+                        this.processedComments.add(comment.id);
+                        await this.log(`✅ Successfully processed comment ${comment.id}`);
+                        
                     } catch (error) {
-                        await this.log(`Error processing comment ${comment.id}: ${error.message}`, 'ERROR');
+                        await this.log(`❌ Error processing comment ${comment.id}: ${error.message}`, 'ERROR');
+                        // Don't mark as processed if there was an error - allow retry
                     }
+                } else {
+                    await this.log(`⏭️ Skipping comment ${comment.id} - No action needed (Human: ${isHumanComment}, @claude: ${isClaude}, Directive: ${isDirective}, Processed: ${isSwarmProcessed})`);
+                    // Mark as processed since we intentionally skipped it
+                    this.processedComments.add(comment.id);
                 }
-                
-                // Always mark as processed to avoid reprocessing
-                this.processedComments.add(comment.id);
             }
             
             // Save processed comments after each check
@@ -538,87 +602,151 @@ claude mcp restart ruv-swarm
         const isClaude = this.isMentioningClaude(comment.body);
         await this.log(`Processing human follow-up on completed issue #${issue.number} (@claude: ${isClaude})`);
         
-        try {
-            // Get all comments for context
-            const { data: allComments } = await this.octokit.issues.listComments({
-                owner: this.config.github.owner,
-                repo: this.config.github.repo,
-                issue_number: issue.number,
-                per_page: 100
-            });
-            
-            // Create appropriate prompt based on whether it's a @claude mention
-            const promptIntro = isClaude 
-                ? `You have been mentioned by @${comment.user.login} on a completed GitHub issue.`
-                : `A human has commented on a completed GitHub issue that you previously worked on.`;
-            
-            const claudePrompt = `${promptIntro}
-
-IMPORTANT: This is a follow-up comment on an already completed issue. The implementation has been done.
-
-Issue #${issue.number}: ${issue.title}
-Status: COMPLETED (with label: swarm-processed)
-
-Original Issue Description:
-${issue.body || 'No description'}
-
-Recent Human Comment:
-${comment.body}
-
-Previous Implementation Context:
-${allComments.slice(0, -1).map(c => `[${c.user.login}]: ${c.body.substring(0, 200)}...`).join('\n')}
-
-INSTRUCTIONS:
-1. Analyze the human's follow-up comment
-2. If they're asking for modifications, implement them
-3. If they're asking questions, provide clear answers
-4. If they're just providing feedback, acknowledge it appropriately
-5. Reference the existing implementation when relevant
-6. Be helpful and responsive to their specific needs
-
-${isClaude ? 'This is a direct @claude mention, so provide a more detailed and personalized response.' : 'This is a general comment, so be helpful but concise.'}
-
-Remember: The issue was already processed, so this is about refinements, answers, or acknowledgments, not starting from scratch.`;
-
-            // Store the prompt temporarily
-            const promptPath = path.join(
-                this.automation.fileOrg.getTempPath(issue.number, 'human-followup', 'txt')
-            );
-            await fs.writeFile(promptPath, claudePrompt);
-            
-            // Execute Claude with the follow-up context
-            const command = `claude --print --dangerously-skip-permissions < "${promptPath}"`;
-            const result = execSync(command, {
-                encoding: 'utf8',
-                maxBuffer: 10 * 1024 * 1024,
-                env: process.env
-            });
-            
-            // Post Claude's response with appropriate header
-            const responseHeader = isClaude 
-                ? `🤖 **Claude's Response to @${comment.user.login}**`
-                : `🤖 **Follow-up Response**`;
+        // Add retry logic with exponential backoff
+        const maxRetries = 3;
+        let retryCount = 0;
+        let lastError = null;
+        
+        while (retryCount < maxRetries) {
+            try {
+                // Create a shorter, more focused prompt
+                const claudePrompt = `Human comment on completed issue #${issue.number}: "${comment.body}"
                 
-            const responseFooter = isClaude
-                ? '*This response was generated based on your @claude mention.*'
-                : '*This response was generated based on your comment on this completed issue.*';
-            
-            await this.postComment(issue.number, `${responseHeader}
+Issue was already implemented. Provide a brief, helpful response addressing their specific request or question.`;
+                
+                // Store the prompt temporarily with a unique filename
+                const tempDir = path.join(__dirname, 'tmp');
+                await fs.mkdir(tempDir, { recursive: true });
+                const promptPath = path.join(tempDir, `prompt-${issue.number}-${Date.now()}.txt`);
+                await fs.writeFile(promptPath, claudePrompt);
+                
+                // Check Claude CLI availability first
+                try {
+                    execSync('which claude', { stdio: 'ignore' });
+                } catch (error) {
+                    throw new Error('Claude CLI not found. Please ensure Claude is installed and accessible in PATH.');
+                }
+                
+                // Execute Claude with a shorter timeout and better error handling
+                let result;
+                try {
+                    // Use a more robust command execution approach
+                    result = await new Promise((resolve, reject) => {
+                        const child = spawn('claude', ['--print', '--dangerously-skip-permissions'], {
+                            stdio: ['pipe', 'pipe', 'pipe'],
+                            env: process.env
+                        });
+                        
+                        let stdout = '';
+                        let stderr = '';
+                        let timedOut = false;
+                        
+                        // Set a timeout
+                        const timeout = setTimeout(() => {
+                            timedOut = true;
+                            child.kill('SIGTERM');
+                            setTimeout(() => child.kill('SIGKILL'), 5000);
+                        }, 60000); // 60 second timeout
+                        
+                        child.stdout.on('data', (data) => {
+                            stdout += data.toString();
+                        });
+                        
+                        child.stderr.on('data', (data) => {
+                            stderr += data.toString();
+                        });
+                        
+                        child.on('close', (code) => {
+                            clearTimeout(timeout);
+                            if (timedOut) {
+                                reject(new Error('Claude execution timed out'));
+                            } else if (code !== 0) {
+                                reject(new Error(`Claude exited with code ${code}: ${stderr}`));
+                            } else {
+                                resolve(stdout);
+                            }
+                        });
+                        
+                        child.on('error', (error) => {
+                            clearTimeout(timeout);
+                            reject(error);
+                        });
+                        
+                        // Send the prompt content
+                        fs.readFile(promptPath, 'utf8').then(content => {
+                            child.stdin.write(content);
+                            child.stdin.end();
+                        }).catch(reject);
+                    });
+                } catch (cmdError) {
+                    // If spawn fails, try execSync as fallback
+                    await this.log(`Spawn failed, trying execSync fallback: ${cmdError.message}`, 'WARN');
+                    const command = `cat "${promptPath}" | claude --print --dangerously-skip-permissions`;
+                    result = execSync(command, {
+                        encoding: 'utf8',
+                        maxBuffer: 10 * 1024 * 1024,
+                        timeout: 60000,
+                        env: process.env
+                    });
+                }
+                
+                // Clean up temp file
+                await fs.unlink(promptPath).catch(() => {});
+                
+                // Post Claude's response
+                const responseHeader = isClaude 
+                    ? `🤖 **Claude's Response to @${comment.user.login}**`
+                    : `🤖 **Follow-up Response**`;
+                    
+                const responseFooter = isClaude
+                    ? '*This response was generated based on your @claude mention.*'
+                    : '*This response was generated based on your comment on this completed issue.*';
+                
+                await this.postComment(issue.number, `${responseHeader}
 
 ${result}
 
 ---
 ${responseFooter}`);
+                
+                // Success - break out of retry loop
+                break;
+                
+            } catch (error) {
+                lastError = error;
+                retryCount++;
+                
+                await this.log(`Attempt ${retryCount} failed: ${error.message}`, 'WARN');
+                
+                if (retryCount < maxRetries) {
+                    // Exponential backoff: 2^retryCount seconds
+                    const backoffDelay = Math.pow(2, retryCount) * 1000;
+                    await this.log(`Retrying in ${backoffDelay/1000} seconds...`, 'INFO');
+                    await this.delay(backoffDelay);
+                }
+            }
+        }
+        
+        // If all retries failed, post an error message
+        if (retryCount >= maxRetries && lastError) {
+            await this.log(`All retry attempts failed: ${lastError.message}`, 'ERROR');
             
-            // Clean up temp file
-            await fs.unlink(promptPath).catch(() => {});
+            // Provide more specific error messages
+            let errorMessage = lastError.message;
+            if (lastError.message.includes('timeout')) {
+                errorMessage = 'Claude processing timed out. The request may be too complex. Please try a simpler request.';
+            } else if (lastError.message.includes('other side closed') || lastError.message.includes('EPIPE')) {
+                errorMessage = 'Claude connection was interrupted. This is usually temporary - please try again in a few moments.';
+            } else if (lastError.message.includes('ENOENT') || lastError.message.includes('not found')) {
+                errorMessage = 'Claude CLI not found. Please ensure Claude is properly installed and accessible.';
+            } else if (lastError.message.includes('ETIMEDOUT')) {
+                errorMessage = 'System timeout occurred. The service may be overloaded - please try again later.';
+            }
             
-        } catch (error) {
-            await this.log(`Error handling human follow-up: ${error.message}`, 'ERROR');
             const errorHeader = isClaude ? '❌ **Error Processing @claude Request**' : '❌ **Error Processing Follow-up Comment**';
             await this.postComment(issue.number, `${errorHeader}
 
-I encountered an error while processing your ${isClaude ? 'request' : 'comment'}: ${error.message}
+I encountered an error while processing your ${isClaude ? 'request' : 'comment'}: ${errorMessage}
 
 Please try again or contact support if the issue persists.`);
         }
@@ -649,6 +777,7 @@ Please try again or contact support if the issue persists.`);
         await this.log('File organization: ENABLED');
         await this.log('MCP monitoring: ENABLED');
         await this.log('Comment detection: ENHANCED with buffer and broader detection');
+        await this.log('Claude integration: IMPROVED with retry logic and better error handling');
         
         // Start MCP health checks
         setInterval(async () => {

@@ -1,0 +1,202 @@
+name: Manual Automation Trigger
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform'
+        required: true
+        type: choice
+        options:
+          - reprocess-issue
+          - run-ruv-swarm
+          - generate-subtasks
+          - update-documentation
+          - validate-setup
+          - restart-services
+          - clear-labels
+          - force-close
+      target:
+        description: 'Target issue number (or "system" for system actions)'
+        required: true
+        type: string
+      parameters:
+        description: 'Additional parameters (JSON format)'
+        required: false
+        type: string
+        default: '{}'
+
+jobs:
+  execute-manual:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
+      - name: Install dependencies
+        run: |
+          cd .devcontainer/github-workflow
+          npm ci
+          
+      - name: Validate inputs
+        id: validate
+        run: |
+          # Validate target
+          if [ "${{ inputs.target }}" == "system" ]; then
+            # System actions don't need issue validation
+            echo "target_type=system" >> $GITHUB_OUTPUT
+            echo "issue_number=0" >> $GITHUB_OUTPUT
+          else
+            # Validate issue number format
+            if echo "${{ inputs.target }}" | grep -qE '^[0-9]+$'; then
+              echo "target_type=issue" >> $GITHUB_OUTPUT
+              echo "issue_number=${{ inputs.target }}" >> $GITHUB_OUTPUT
+            else
+              echo "::error::Invalid target format. Use issue number or 'system'"
+              exit 1
+            fi
+          fi
+          
+          # Validate parameters JSON
+          if echo '${{ inputs.parameters }}' | jq . > /dev/null 2>&1; then
+            echo "params_valid=true" >> $GITHUB_OUTPUT
+          else
+            echo "::error::Invalid JSON in parameters"
+            exit 1
+          fi
+          
+      - name: Log manual trigger
+        env:
+          GITHUB_TOKEN: ${{ secrets.BOT_PAT }}
+        run: |
+          # Create audit log entry
+          echo "Manual automation triggered:" >> manual-trigger.log
+          echo "- Action: ${{ inputs.action }}" >> manual-trigger.log
+          echo "- Target: ${{ inputs.target }}" >> manual-trigger.log
+          echo "- Actor: @${{ github.actor }}" >> manual-trigger.log
+          echo "- Time: $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> manual-trigger.log
+          echo "- Parameters: ${{ inputs.parameters }}" >> manual-trigger.log
+          echo "- Run ID: ${{ github.run_id }}" >> manual-trigger.log
+          echo "" >> manual-trigger.log
+          
+          # Post to issue if targeting specific issue
+          if [ "${{ steps.validate.outputs.target_type }}" == "issue" ]; then
+            gh issue comment ${{ steps.validate.outputs.issue_number }} \
+              --body "🤖 **Manual Automation Triggered**
+
+**Action**: \`${{ inputs.action }}\`
+**Triggered by**: @${{ github.actor }}
+**Workflow Run**: [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+Processing..." \
+              --repo ${{ github.repository }} || true
+          fi
+          
+      - name: Execute action
+        id: execute
+        env:
+          GITHUB_TOKEN: ${{ secrets.BOT_PAT }}
+          ACTION: ${{ inputs.action }}
+          TARGET: ${{ inputs.target }}
+          TARGET_TYPE: ${{ steps.validate.outputs.target_type }}
+          ISSUE_NUMBER: ${{ steps.validate.outputs.issue_number }}
+          PARAMETERS: ${{ inputs.parameters }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          cd .devcontainer/github-workflow
+          
+          # Execute the manual trigger action
+          if node actions/manual-trigger.js; then
+            echo "execution_status=success" >> $GITHUB_OUTPUT
+          else
+            echo "execution_status=failed" >> $GITHUB_OUTPUT
+          fi
+          
+      - name: Report success
+        if: success() && steps.validate.outputs.target_type == 'issue'
+        env:
+          GITHUB_TOKEN: ${{ secrets.BOT_PAT }}
+        run: |
+          gh issue comment ${{ steps.validate.outputs.issue_number }} \
+            --body "✅ **Manual Action Completed**
+
+**Action**: \`${{ inputs.action }}\`
+**Status**: Success
+**Duration**: $SECONDS seconds
+**Completed at**: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+---
+*Executed by workflow run [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})*" \
+            --repo ${{ github.repository }}
+            
+      - name: Handle errors
+        if: failure()
+        env:
+          GITHUB_TOKEN: ${{ secrets.BOT_PAT }}
+        run: |
+          # Log error details
+          echo "::error::Manual action '${{ inputs.action }}' failed for target '${{ inputs.target }}'"
+          
+          # Post error to issue if applicable
+          if [ "${{ steps.validate.outputs.target_type }}" == "issue" ]; then
+            gh issue comment ${{ steps.validate.outputs.issue_number }} \
+              --body "❌ **Manual Action Failed**
+
+**Action**: \`${{ inputs.action }}\`
+**Status**: Failed
+**Error**: Check workflow logs for details
+
+**Troubleshooting**:
+1. Verify the action is supported
+2. Check parameter format
+3. Ensure Bot-PAT has required permissions
+4. Review workflow logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+---
+*Failed at $(date -u +%Y-%m-%dT%H:%M:%SZ)*" \
+              --repo ${{ github.repository }} || true
+          fi
+          
+          # Create error tracking issue for critical actions
+          if [[ "${{ inputs.action }}" =~ ^(restart-services|validate-setup)$ ]]; then
+            gh issue create \
+              --title "🚨 Manual Action Failure: ${{ inputs.action }}" \
+              --body "## Manual Action Failure
+
+A critical manual action has failed and requires attention.
+
+### Failure Details
+- **Action**: \`${{ inputs.action }}\`
+- **Target**: ${{ inputs.target }}
+- **Triggered by**: @${{ github.actor }}
+- **Parameters**: \`${{ inputs.parameters }}\`
+- **Workflow Run**: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+- **Timestamp**: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+### Impact
+This failure may affect system automation capabilities.
+
+### Required Actions
+1. Review the workflow logs
+2. Check system status
+3. Manually execute recovery steps if needed
+
+@admin Please investigate." \
+              --label "critical,automation-failure,manual-action" \
+              --repo ${{ github.repository }} || true
+          fi
+          
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: manual-trigger-logs-${{ github.run_id }}
+          path: |
+            .devcontainer/github-workflow/manual-trigger.log
+            .devcontainer/github-workflow/logs/
+          retention-days: 7

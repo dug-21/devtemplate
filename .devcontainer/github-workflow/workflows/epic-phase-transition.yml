@@ -1,0 +1,181 @@
+name: EPIC Phase Transition
+on:
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: 'Issue number to transition'
+        required: true
+        type: string
+      next_phase:
+        description: 'Target phase for transition'
+        required: true
+        type: choice
+        options:
+          - inception
+          - discovery
+          - design
+          - architecture
+          - implementation
+          - testing
+          - deployment
+          - operations
+      force_transition:
+        description: 'Force transition without validation'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  transition-phase:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
+      - name: Install dependencies
+        run: |
+          cd .devcontainer/github-workflow
+          npm ci
+          
+      - name: Validate issue exists
+        id: validate-issue
+        env:
+          GITHUB_TOKEN: ${{ secrets.BOT_PAT }}
+        run: |
+          # Check if issue exists and get current labels
+          if gh issue view ${{ inputs.issue_number }} \
+            --json title,state,labels \
+            --jq '. | @json' \
+            --repo ${{ github.repository }} > issue-data.json; then
+            
+            echo "issue_exists=true" >> $GITHUB_OUTPUT
+            echo "issue_data=$(cat issue-data.json)" >> $GITHUB_OUTPUT
+            
+            # Check if issue is open
+            state=$(jq -r '.state' issue-data.json)
+            if [ "$state" != "OPEN" ]; then
+              echo "issue_open=false" >> $GITHUB_OUTPUT
+            else
+              echo "issue_open=true" >> $GITHUB_OUTPUT
+            fi
+            
+            # Check if it's an EPIC
+            if jq -r '.labels[].name' issue-data.json | grep -q '^epic$'; then
+              echo "is_epic=true" >> $GITHUB_OUTPUT
+            else
+              echo "is_epic=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "issue_exists=false" >> $GITHUB_OUTPUT
+          fi
+          
+      - name: Validate prerequisites
+        if: steps.validate-issue.outputs.issue_exists == 'true'
+        run: |
+          if [ "${{ steps.validate-issue.outputs.issue_open }}" != "true" ]; then
+            echo "::error::Issue #${{ inputs.issue_number }} is not open"
+            exit 1
+          fi
+          
+          if [ "${{ steps.validate-issue.outputs.is_epic }}" != "true" ]; then
+            echo "::warning::Issue #${{ inputs.issue_number }} is not labeled as an EPIC"
+            if [ "${{ inputs.force_transition }}" != "true" ]; then
+              echo "::error::Use force_transition=true to transition non-EPIC issues"
+              exit 1
+            fi
+          fi
+          
+      - name: Apply transition labels
+        if: steps.validate-issue.outputs.issue_exists == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.BOT_PAT }}
+        run: |
+          gh issue edit ${{ inputs.issue_number }} \
+            --add-label "in-progress,phase-transition" \
+            --repo ${{ github.repository }}
+            
+      - name: Validate phase transition
+        if: steps.validate-issue.outputs.issue_exists == 'true' && inputs.force_transition != true
+        id: validate-transition
+        env:
+          GITHUB_TOKEN: ${{ secrets.BOT_PAT }}
+          ISSUE_NUMBER: ${{ inputs.issue_number }}
+          ISSUE_DATA: ${{ steps.validate-issue.outputs.issue_data }}
+          TARGET_PHASE: ${{ inputs.next_phase }}
+        run: |
+          cd .devcontainer/github-workflow
+          
+          # Run validation script
+          if node actions/validate-phase-transition.js; then
+            echo "validation_passed=true" >> $GITHUB_OUTPUT
+          else
+            echo "validation_passed=false" >> $GITHUB_OUTPUT
+          fi
+          
+      - name: Execute phase transition
+        if: |
+          steps.validate-issue.outputs.issue_exists == 'true' && 
+          (inputs.force_transition == true || steps.validate-transition.outputs.validation_passed == 'true')
+        env:
+          GITHUB_TOKEN: ${{ secrets.BOT_PAT }}
+          ISSUE_NUMBER: ${{ inputs.issue_number }}
+          TARGET_PHASE: ${{ inputs.next_phase }}
+          FORCE_TRANSITION: ${{ inputs.force_transition }}
+        run: |
+          cd .devcontainer/github-workflow
+          
+          # Update phase
+          node actions/update-phase.js
+          
+          # Post transition comment
+          gh issue comment ${{ inputs.issue_number }} \
+            --body "## 🔄 Phase Transition Completed
+
+**Transitioned to Phase**: \`${{ inputs.next_phase }}\`
+**Timestamp**: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+**Triggered by**: @${{ github.actor }}
+**Force Transition**: ${{ inputs.force_transition }}
+
+### Next Steps
+The automation system will now process this issue according to the **${{ inputs.next_phase }}** phase requirements.
+
+---
+*Phase transition executed by workflow run [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})*" \
+            --repo ${{ github.repository }}
+            
+      - name: Handle errors
+        if: failure()
+        env:
+          GITHUB_TOKEN: ${{ secrets.BOT_PAT }}
+        run: |
+          # Post error comment
+          gh issue comment ${{ inputs.issue_number }} \
+            --body "❌ **Phase Transition Failed**
+
+Failed to transition issue #${{ inputs.issue_number }} to phase \`${{ inputs.next_phase }}\`.
+
+**Error Details:**
+- Workflow Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+- Triggered by: @${{ github.actor }}
+- Timestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+Please check the workflow logs for details." \
+            --repo ${{ github.repository }} || true
+            
+          # Log error
+          echo "::error::Phase transition failed for issue #${{ inputs.issue_number }}"
+          
+      - name: Remove transition labels
+        if: always() && steps.validate-issue.outputs.issue_exists == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.BOT_PAT }}
+        run: |
+          gh issue edit ${{ inputs.issue_number }} \
+            --remove-label "in-progress,phase-transition" \
+            --repo ${{ github.repository }} || true

@@ -1,0 +1,249 @@
+name: GitHub Workflow Automation System Implementation
+description: Full TDD/SPARC implementation of GitHub workflow automation system redesign
+max_iterations: 50
+model_config:
+  batch_size: 5
+  parallel_agents: 15
+
+agents:
+  # Architecture & Design Team (3 agents)
+  - name: sparc_architect
+    role: SPARC Architecture Specialist
+    expertise: SPARC methodology, system architecture, GitHub Actions
+    responsibilities:
+      - Define Situation, Problem, Alternatives, Recommendation, Conclusion
+      - Create architectural decision records (ADRs)
+      - Design event-driven GitHub Actions architecture
+      - Ensure alignment with requirements
+
+  - name: systems_designer
+    role: Systems Design Engineer  
+    expertise: Distributed systems, event-driven architecture, microservices
+    responsibilities:
+      - Design component interactions
+      - Define API contracts between services
+      - Create sequence diagrams for workflows
+      - Design state management approach
+
+  - name: integration_architect
+    role: Integration Architecture Specialist
+    expertise: GitHub API, MCP protocol, ruv-swarm integration
+    responsibilities:
+      - Design GitHub Actions workflow structure
+      - Define MCP service integration patterns
+      - Create ruv-swarm orchestration architecture
+      - Design Claude Code CLI integration
+
+  # Development Team (5 agents)
+  - name: test_engineer
+    role: TDD Test Engineer
+    expertise: Jest, GitHub Actions testing, integration testing
+    responsibilities:
+      - Write test specifications first (TDD)
+      - Create unit tests for all components
+      - Design integration test suites
+      - Setup test infrastructure
+
+  - name: actions_developer
+    role: GitHub Actions Developer
+    expertise: GitHub Actions, YAML workflows, webhook handling
+    responsibilities:
+      - Implement GitHub Actions workflows
+      - Create reusable action components
+      - Handle event processing logic
+      - Implement webhook receivers
+
+  - name: core_developer
+    role: Core Systems Developer
+    expertise: Node.js, event processing, API development
+    responsibilities:
+      - Implement core processing logic
+      - Create issue processing engine
+      - Build comment handling system
+      - Develop phase management logic
+
+  - name: automation_developer
+    role: Automation Engineer
+    expertise: Process automation, workflow engines, state machines
+    responsibilities:
+      - Implement EPIC phase transitions
+      - Create template selection logic
+      - Build progress tracking system
+      - Develop milestone reporting
+
+  - name: ai_integration_developer
+    role: AI Integration Developer
+    expertise: Claude API, ruv-swarm, MCP protocol
+    responsibilities:
+      - Integrate Claude Code CLI
+      - Implement ruv-swarm coordination
+      - Build MCP service monitoring
+      - Create AI response handling
+
+  # Quality & Operations Team (4 agents)
+  - name: quality_analyst
+    role: Quality Assurance Specialist
+    expertise: Testing strategies, code quality, performance testing
+    responsibilities:
+      - Review test coverage
+      - Perform code quality analysis
+      - Validate against requirements
+      - Create quality metrics
+
+  - name: devops_engineer
+    role: DevOps Engineer
+    expertise: GitHub Actions, containerization, CI/CD
+    responsibilities:
+      - Setup GitHub Actions infrastructure
+      - Create deployment workflows
+      - Implement monitoring solutions
+      - Configure secrets management
+
+  - name: security_engineer
+    role: Security Engineer
+    expertise: GitHub security, credential management, secure coding
+    responsibilities:
+      - Implement Bot-PAT authentication
+      - Secure credential storage
+      - Review security implications
+      - Create security guidelines
+
+  - name: documentation_engineer
+    role: Documentation Specialist
+    expertise: Technical writing, API documentation, user guides
+    responsibilities:
+      - Document implementation details
+      - Create setup guides
+      - Write API documentation
+      - Develop troubleshooting guides
+
+  # Coordination & Review Team (3 agents)
+  - name: project_coordinator
+    role: Project Coordinator
+    expertise: Agile methodologies, GitHub project management
+    responsibilities:
+      - Coordinate agent activities
+      - Track implementation progress
+      - Manage dependencies
+      - Report milestone completions
+
+  - name: requirements_analyst
+    role: Requirements Analyst
+    expertise: Requirements engineering, traceability, validation
+    responsibilities:
+      - Validate implementation against requirements
+      - Maintain requirements traceability
+      - Identify requirement gaps
+      - Update requirements as needed
+
+  - name: technical_reviewer
+    role: Technical Review Lead
+    expertise: Code review, architecture review, best practices
+    responsibilities:
+      - Review all code implementations
+      - Validate architectural decisions
+      - Ensure KISS principle adherence
+      - Approve phase transitions
+
+collaboration:
+  phases:
+    - name: sparc_analysis
+      duration: 2 iterations
+      lead: sparc_architect
+      participants: [systems_designer, integration_architect, requirements_analyst]
+      deliverables:
+        - SPARC specification document
+        - Architectural decision records
+        - Component design diagrams
+
+    - name: test_specification
+      duration: 3 iterations
+      lead: test_engineer
+      participants: [quality_analyst, requirements_analyst]
+      deliverables:
+        - Test plan document
+        - Unit test specifications
+        - Integration test scenarios
+        - Test infrastructure setup
+
+    - name: core_implementation
+      duration: 10 iterations
+      parallel_tracks:
+        - track: github_actions
+          lead: actions_developer
+          participants: [devops_engineer]
+          deliverables:
+            - GitHub Actions workflows
+            - Event processing handlers
+            - Webhook receivers
+
+        - track: core_engine
+          lead: core_developer
+          participants: [automation_developer]
+          deliverables:
+            - Issue processing engine
+            - Comment handling system
+            - Phase management logic
+
+        - track: ai_integration
+          lead: ai_integration_developer
+          participants: [integration_architect]
+          deliverables:
+            - Claude Code integration
+            - ruv-swarm coordination
+            - MCP service monitoring
+
+    - name: integration_testing
+      duration: 5 iterations
+      lead: test_engineer
+      participants: [quality_analyst, security_engineer]
+      deliverables:
+        - Integration test results
+        - Security validation report
+        - Performance test results
+
+    - name: deployment_preparation
+      duration: 3 iterations
+      lead: devops_engineer
+      participants: [security_engineer, documentation_engineer]
+      deliverables:
+        - Deployment workflows
+        - Security configuration
+        - Setup documentation
+
+    - name: final_review
+      duration: 2 iterations
+      lead: technical_reviewer
+      participants: [project_coordinator, requirements_analyst]
+      deliverables:
+        - Technical review report
+        - Requirements compliance matrix
+        - Go-live checklist
+
+workflow:
+  - Initialize SPARC analysis
+  - Design event-driven architecture
+  - Create test specifications (TDD)
+  - Implement core components in parallel
+  - Integrate with existing ruv-swarm patterns
+  - Validate against requirements
+  - Deploy to GitHub Actions
+  - Document and finalize
+
+success_criteria:
+  - All requirements implemented and tested
+  - 90%+ test coverage
+  - Event response time < 5 seconds
+  - Bot authentication working
+  - ruv-swarm integration functional
+  - EPIC phase workflow operational
+  - Documentation complete
+
+tools:
+  - GitHub Actions
+  - Jest for testing
+  - Node.js
+  - GitHub CLI (gh)
+  - MCP protocol
+  - ruv-swarm
+  - Claude Code CLI

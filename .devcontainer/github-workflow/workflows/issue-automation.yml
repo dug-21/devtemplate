@@ -1,0 +1,114 @@
+name: Issue Automation
+on:
+  issues:
+    types: [opened, reopened, edited]
+
+jobs:
+  process-issue:
+    runs-on: ubuntu-latest
+    # Only process if not created by the bot itself
+    if: github.event.sender.type != 'Bot'
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
+      - name: Install dependencies
+        run: |
+          cd .devcontainer/github-workflow
+          npm ci
+          
+      - name: Apply initial labels
+        env:
+          GITHUB_TOKEN: ${{ secrets.BOT_PAT }}
+        run: |
+          gh issue edit ${{ github.event.issue.number }} \
+            --add-label "in-progress,swarm-active" \
+            --repo ${{ github.repository }}
+            
+      - name: Process issue event
+        id: process
+        env:
+          GITHUB_TOKEN: ${{ secrets.BOT_PAT }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_LABELS: ${{ toJson(github.event.issue.labels) }}
+          EVENT_ACTION: ${{ github.event.action }}
+        run: |
+          cd .devcontainer/github-workflow
+          node actions/process-issue.js
+          
+      - name: Handle errors
+        if: failure()
+        env:
+          GITHUB_TOKEN: ${{ secrets.BOT_PAT }}
+        run: |
+          # Post error comment with exponential backoff
+          attempt=1
+          max_attempts=3
+          while [ $attempt -le $max_attempts ]; do
+            if gh issue comment ${{ github.event.issue.number }} \
+              --body "❌ **Error Processing Issue**
+
+An error occurred while processing this issue. The automation system will retry with exponential backoff.
+
+**Error Details:**
+- Workflow Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+- Attempt: $attempt of $max_attempts
+- Time: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+If this persists, a critical failure issue will be created." \
+              --repo ${{ github.repository }}; then
+              break
+            fi
+            
+            # Exponential backoff: 2^attempt seconds
+            sleep $((2**attempt))
+            attempt=$((attempt + 1))
+          done
+          
+          # Create critical failure issue if all retries failed
+          if [ $attempt -gt $max_attempts ]; then
+            gh issue create \
+              --title "🚨 Critical: Issue Automation Failure for #${{ github.event.issue.number }}" \
+              --body "## Critical Failure Alert
+
+The issue automation system failed to process issue #${{ github.event.issue.number }} after $max_attempts attempts.
+
+### Failure Details
+- **Original Issue**: #${{ github.event.issue.number }}
+- **Workflow Run**: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+- **Timestamp**: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+- **Event Action**: ${{ github.event.action }}
+
+### Required Actions
+1. Review the workflow logs
+2. Check GitHub API availability
+3. Verify Bot-PAT permissions
+4. Manually process the issue if needed
+
+### Logs
+\`\`\`
+Check workflow run for detailed logs
+\`\`\`
+
+@admin Please investigate this critical failure." \
+              --label "critical,automation-failure" \
+              --repo ${{ github.repository }}
+          fi
+          
+      - name: Remove processing labels on completion
+        if: success()
+        env:
+          GITHUB_TOKEN: ${{ secrets.BOT_PAT }}
+        run: |
+          gh issue edit ${{ github.event.issue.number }} \
+            --remove-label "in-progress,swarm-active" \
+            --add-label "swarm-processed" \
+            --repo ${{ github.repository }}

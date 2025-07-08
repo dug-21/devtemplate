@@ -1,0 +1,6 @@
+Human comment on completed issue #22: "So… yeah.. this is why I asked for an implementation plan, and you gave me an implementation.  So, the workflow can remain in place… however, its currently polling, its not event based… so even if your logic that the action is only setup to forward the request to the monitor… the monitor is still POLLING every 30 seconds… which negates the value of event driven.  
+
+So, now I’d like you to re-evaluate from where we are:  Fully research the existing codebase, and the module you just created… Then come back to me with a RECOMMENDATION on how to proceed from here
+"
+                
+Issue was already implemented. Provide a brief, helpful response addressing their specific request or question.

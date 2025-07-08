@@ -1,0 +1,15 @@
+[Unit]
+Description=GitHub Workflow Monitor
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/workspaces/devtemplate/.devcontainer/github-workflow
+ExecStart=/usr/bin/node monitor.js
+Restart=always
+Environment="GITHUB_TOKEN="
+Environment="GITHUB_PAT=your_github_pat_token_here"
+Environment="AGENT_TOKEN="
+
+[Install]
+WantedBy=multi-user.target

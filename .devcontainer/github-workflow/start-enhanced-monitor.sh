@@ -23,8 +23,8 @@ if ! command -v node &> /dev/null; then
 fi
 
 # Check if token is set
-if [ -z "$AGENT_TOKEN" ] && [ -z "$GITHUB_TOKEN" ]; then
-    echo "❌ Error: Neither AGENT_TOKEN nor GITHUB_TOKEN is set"
+if [ -z "$GITHUB_BOT_TOKEN" ]; then
+    echo "❌ Error: GITHUB_BOT_TOKEN is NOT set"
     echo "Please set one of these environment variables with your GitHub token"
     exit 1
 fi

@@ -172,7 +172,7 @@ class EnhancedGitHubMonitorV3 {
     constructor(config) {
         this.config = config;
         this.octokit = new Octokit({
-            auth: config.github.token || process.env.AGENT_TOKEN || process.env.GITHUB_TOKEN
+            auth: config.github.token || process.env.GITHUB_BOT_TOKEN || process.env.GITHUB_PERSONAL_ACCESS_TOKEN || process.env.AGENT_TOKEN || process.env.GITHUB_TOKEN
         });
         this.automation = new EnhancedGitHubAutomation(config);
         this.lastCheckFile = path.join(__dirname, '.last-check-enhanced-v3');

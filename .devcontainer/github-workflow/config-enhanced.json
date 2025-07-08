@@ -5,7 +5,8 @@
     "pollInterval": 60000,
     "enabled": true,
     "projectNumber": null,
-    "projectColumnId": null
+    "projectColumnId": null,
+    "token": null
   },
   "phases": {
     "idea": {

@@ -27,7 +27,7 @@
   "runArgs": [
     "--security-opt", "label=disable",
     "--secret", "GITHUB_PAT,type=env,target=GITHUB_PAT",
-    "--secret", "AGENT_TOKEN,type=env,target=AGENT_TOKEN"
+    "--secret", "GITHUB_BOT_TOKEN,type=env,target=GITHUB_BOT_TOKEN"
   ],
   "mounts": [
     "source=claude-devtemplate,target=/home/vscode/.claude,type=volume"

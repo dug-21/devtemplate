@@ -36,8 +36,8 @@ echo "🐳 Configuring Podman MCP server..."
 add_mcp_if_not_exists "podman" npx podman-mcp-server@latest
 
 # Optional: Configure GitHub MCP server if AGENT_TOKEN is set
-if [ -n "$AGENT_TOKEN" ]; then
-    add_mcp_if_not_exists "github" npx @modelcontextprotocol/server-github -e GITHUB_PERSONAL_ACCESS_TOKEN="$AGENT_TOKEN"
+if [ -n "$GITHUB_BOT_TOKEN" ]; then
+    add_mcp_if_not_exists "github" npx @modelcontextprotocol/server-github -e GITHUB_PERSONAL_ACCESS_TOKEN="$GITHUB_BOT_TOKEN"
 else
     echo "  ℹ️  AGENT_TOKEN not set. Set it in Codespaces secrets to enable GitHub MCP."
 fi

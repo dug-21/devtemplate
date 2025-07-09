@@ -1,0 +1,25 @@
+{
+  "issueNumber": 26,
+  "title": "Workflow methodology for idea to implementation",
+  "createdAt": "2025-07-09T01:16:09Z",
+  "processedAt": "2025-07-09T02:18:37.461Z",
+  "labels": [
+    "in-progress",
+    "swarm-active"
+  ],
+  "state": "open",
+  "files": [
+    {
+      "path": "/workspaces/devtemplate/.devcontainer/github-workflow/issues/issue-26/claude-prompt.txt",
+      "type": ".txt",
+      "createdAt": "2025-07-09T02:18:38.366Z"
+    },
+    {
+      "path": "/workspaces/devtemplate/.devcontainer/github-workflow/issues/issue-26/SUMMARY.md",
+      "type": "summary",
+      "createdAt": "2025-07-09T02:25:38.447Z"
+    }
+  ],
+  "modifiedFiles": [],
+  "artifacts": []
+}

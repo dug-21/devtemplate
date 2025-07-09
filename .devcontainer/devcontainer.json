@@ -19,14 +19,12 @@
         "eamodio.gitlens"
       ],
       "settings": {
-        "dev.containers.dockerPath": "/opt/podman/bin/podman",
         "terminal.integrated.defaultProfile.linux": "bash"
       }
     }
   },  
   "runArgs": [
     "--security-opt", "label=disable",
-    "--secret", "GITHUB_PAT,type=env,target=GITHUB_PAT",
     "--secret", "GITHUB_BOT_TOKEN,type=env,target=GITHUB_BOT_TOKEN"
   ],
   "mounts": [

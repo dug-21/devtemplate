@@ -91,12 +91,12 @@ Create `verify-bot-access.js`:
 const { Octokit } = require('@octokit/rest');
 
 async function verifyAccess() {
-    const token = process.env.BOT_GITHUB_TOKEN;
+    const token = process.env.GITHUB_BOT_TOKEN;
     const owner = 'your-username';  // Change this
     const repo = 'your-repo';       // Change this
     
     if (!token) {
-        console.error('❌ BOT_GITHUB_TOKEN not set');
+        console.error('❌ GITHUB_BOT_TOKEN not set');
         return;
     }
     
@@ -138,7 +138,7 @@ verifyAccess();
 
 Run with:
 ```bash
-export BOT_GITHUB_TOKEN="ghp_your_bot_token"
+export GITHUB_BOT_TOKEN="ghp_your_bot_token"
 node verify-bot-access.js
 ```
 

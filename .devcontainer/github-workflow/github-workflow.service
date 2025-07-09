@@ -8,7 +8,7 @@ WorkingDirectory=/workspaces/devtemplate/.devcontainer/github-workflow
 ExecStart=/usr/bin/node monitor.js
 Restart=always
 Environment="GITHUB_TOKEN="
-Environment="GITHUB_PAT=your_your_github_pat_token_here"
+Environment="GITHUB_PAT=your_github_pat_token_here"
 Environment="AGENT_TOKEN="
 
 [Install]

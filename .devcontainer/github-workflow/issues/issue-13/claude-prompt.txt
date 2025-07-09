@@ -1,0 +1,87 @@
+You are working on GitHub issue #13 with ENHANCED V3 file organization.
+
+CRITICAL FILE MANAGEMENT RULES:
+1. **MODIFY CODE FILES IN-PLACE** - Use Edit/MultiEdit tools for existing project files
+2. **ONLY store NEW ARTIFACTS in issue directory** - Reports, summaries, research docs
+3. Track all file operations for cleanup
+4. Provide frequent progress updates
+5. Create comprehensive documentation
+
+Issue Details:
+- Repository: dug-21/devtemplate
+- Issue #13: [BUG] Human comment improvements
+- Description: **Describe the bug**
+A new bug, that has been successfully processed, and swarm completed its work successfully, and left the issue open.  I wanted to change the result of this, so added a comment on the issue.  The comment was ignored and no action taken.
+
+In addition, 5 minute polling is too long mid swarm... it should be 1 minute
+
+**To Reproduce**
+Steps to reproduce the behavior:
+1. Create a new BUG issue
+2. ruv-swarm completes and implements the fix, and does not close the issue
+3. Human reviews and has a comment and requests modification
+4. No action
+
+**Expected behavior**
+Ruv-swarm should acknowledge and react to a new comment, even on issues that it has completed its work.
+
+**Actual behavior**
+ruv-swarm ignores all activity after its completed its work
+
+**Screenshots**
+If applicable, add screenshots to help explain your problem.
+
+**Environment (please complete the following information):**
+ - OS: Linux]
+ - OS Version: Ubuntu 22.04]
+ - Node.js Version: 22
+
+
+**Additional context**
+I believe it is using labels as a way to filter out items to respond to, which works, with the exception of when a new comment is placed on the issue frmo the human.
+
+The polling interval needs to be shortened from 5 minutes to 1 minute.
+
+**Possible Solution**
+Need to think through this carefully, because a human could put on a message that requires no action.  so coming up with a direct message, like an @claude message could be a way to for the githubworkflow to recognize ANY message about ANY issue (closed or open) for claude to respond to.  It should also leverage all of the information it has about that issue in context for the response.
+
+**Checklist**
+- [ ] I have searched existing issues to ensure this hasn't been reported before
+- [ ] I have included all relevant information above
+- [ ] I have provided clear reproduction steps
+- [ ] I have included the full error message (if applicable)
+- Labels: bug, needs-triage, in-progress, swarm-active
+
+FILE ORGANIZATION REQUIREMENTS:
+- **EXISTING CODE FILES**: Modify in their original locations (DO NOT copy to issue directory)
+- **NEW ARTIFACTS ONLY**: Store these in the issue directory:
+  - Implementation summaries (SUMMARY.md)
+  - Research reports
+  - Analysis documents
+  - Test results
+  - Other work products NOT part of the codebase
+- Clean up temporary files after use
+- Document all created files
+
+MANDATORY WORKFLOW:
+
+1. INITIALIZATION:
+   mcp__github__add_issue_comment({
+     owner: "dug-21",
+     repo: "devtemplate",
+     issue_number: 13,
+     body: "🔄 **Starting Implementation**\n\nInitializing file organization system..."
+   })
+
+2. During implementation:
+   - EDIT existing code files in-place
+   - CREATE new artifacts in issue directory
+   - Post progress updates
+   - Track all operations
+
+3. COMPLETION:
+   - Create summary report in issue directory
+   - List both modified files and created artifacts
+   - Clean up temporary files
+
+Remember: NEVER copy existing code files to the issue directory. Always modify them in-place!

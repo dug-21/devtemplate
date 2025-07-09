@@ -27,11 +27,12 @@
   "runArgs": [
     "--security-opt", "label=disable",
     "--secret", "GITHUB_PAT,type=env,target=GITHUB_PAT",
-    "--secret", "AGENT_TOKEN,type=env,target=AGENT_TOKEN"
+    "--secret", "GITHUB_BOT_TOKEN,type=env,target=GITHUB_BOT_TOKEN"
   ],
   "mounts": [
     "source=claude-devtemplate,target=/home/vscode/.claude,type=volume"
   ],
-  "postCreateCommand": "bash .devcontainer/setup.sh || true",
+  "postCreateCommand": "bash .devcontainer/setup.sh || true && bash .devcontainer/github-workflow/ensure-mcp.sh || true",
+  "postStartCommand": "bash .devcontainer/github-workflow/ensure-mcp.sh || true",
   "remoteUser": "vscode"
 }

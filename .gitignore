@@ -25,4 +25,11 @@ yarn-error.log*
 # Build outputs
 dist/
 build/
-out/
+out/.monitor-state.json
+
+# GitHub workflow config
+.devcontainer/github-workflow/config.json
+.devcontainer/github-workflow/data/
+.devcontainer/github-workflow/.processed-issues.json
+.devcontainer/github-workflow/logs/
+.monitor-state.json

@@ -2,10 +2,11 @@
   "github": {
     "owner": "dug-21",
     "repo": "devtemplate",
-    "pollInterval": 300000,
+    "pollInterval": 60000,
     "enabled": true,
     "projectNumber": null,
-    "projectColumnId": null
+    "projectColumnId": null,
+    "token": null
   },
   "phases": {
     "idea": {

@@ -1,21 +1,37 @@
 {
-  "name": "github-workflow-integration",
+  "name": "github-workflow-monitor-personal",
   "version": "1.0.0",
-  "description": "GitHub workflow automation with ruv-swarm integration",
-  "main": "monitor.js",
+  "description": "Personal GitHub workflow automation service for multiple repositories",
+  "main": "monitor-personal.js",
   "scripts": {
-    "start": "node monitor.js",
+    "start": "node monitor-personal.js",
+    "start:multi": "node multi-project-monitor.js",
+    "dev": "nodemon monitor-personal.js",
+    "health": "node healthcheck.js",
     "test": "echo \"No tests specified\" && exit 0"
   },
   "dependencies": {
-    "@octokit/rest": "^20.0.2"
+    "@octokit/rest": "^20.0.2",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "sqlite3": "^5.1.6"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
   },
   "keywords": [
     "github",
     "workflow",
     "automation",
-    "ruv-swarm"
+    "local",
+    "personal",
+    "podman",
+    "mcp",
+    "multi-repo"
   ],
-  "author": "GitHub Workflow Integration",
-  "license": "MIT"
+  "author": "Your Name",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  }
 }

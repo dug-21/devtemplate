@@ -1,0 +1,3 @@
+Human comment on completed issue #15: "Yes, create a better workflow.  What I think is critical, is for you to lay in the templates, whats required to move to the next phase, so lets say I’m asking you to do some research.. there are some key requirements (that are inputs to the architecture & Planning)… so lay that out clearly templatized for every phase."
+                
+Issue was already implemented. Provide a brief, helpful response addressing their specific request or question.

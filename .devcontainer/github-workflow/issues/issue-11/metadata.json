@@ -1,0 +1,25 @@
+{
+  "issueNumber": 11,
+  "title": "[BUG] CRITICAL SECURITY VIOLATION",
+  "createdAt": "2025-07-06T18:26:40Z",
+  "processedAt": "2025-07-06T18:30:20.331Z",
+  "labels": [
+    "bug",
+    "needs-triage",
+    "in-progress",
+    "swarm-active"
+  ],
+  "state": "open",
+  "files": [
+    {
+      "path": "/workspaces/devtemplate/.devcontainer/github-workflow/issues/issue-11/claude-prompt.txt",
+      "type": ".txt",
+      "createdAt": "2025-07-06T18:30:21.293Z"
+    },
+    {
+      "path": "/workspaces/devtemplate/.devcontainer/github-workflow/issues/issue-11/SUMMARY.md",
+      "type": "summary",
+      "createdAt": "2025-07-06T18:36:22.002Z"
+    }
+  ]
+}

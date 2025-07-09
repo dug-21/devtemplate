@@ -32,10 +32,10 @@ add_mcp_if_not_exists() {
 add_mcp_if_not_exists "ruv-swarm" npx ruv-swarm mcp start
 
 # Optional: Configure GitHub MCP server if AGENT_TOKEN is set
-if [ -n "$AGENT_TOKEN" ]; then
-    add_mcp_if_not_exists "github" npx @modelcontextprotocol/server-github -e GITHUB_PERSONAL_ACCESS_TOKEN="$AGENT_TOKEN"
+if [ -n "$GITHUB_BOT_TOKEN" ]; then
+    add_mcp_if_not_exists "github" npx @modelcontextprotocol/server-github -e GITHUB_PERSONAL_ACCESS_TOKEN="$GITHUB_BOT_TOKEN"
 else
-    echo "  ℹ️  AGENT_TOKEN not set. Set it in Codespaces secrets to enable GitHub MCP."
+    echo "  ℹ️  GITHUB_BOT_TOKEN not set. Set it in Codespaces secrets to enable GitHub MCP."
 fi
 
 # Note: Project-specific MCP servers can be added in project-level scripts

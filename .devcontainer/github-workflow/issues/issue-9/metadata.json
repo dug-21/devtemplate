@@ -1,0 +1,23 @@
+{
+  "issueNumber": 9,
+  "title": "[BUG] ruv-swarm MCP server disconnects from Claude",
+  "createdAt": "2025-07-06T13:38:30Z",
+  "processedAt": "2025-07-06T13:42:55.318Z",
+  "labels": [
+    "bug",
+    "needs-triage"
+  ],
+  "state": "open",
+  "files": [
+    {
+      "path": "/workspaces/devtemplate/.devcontainer/github-workflow/issues/issue-9/claude-prompt.txt",
+      "type": ".txt",
+      "createdAt": "2025-07-06T13:42:56.507Z"
+    },
+    {
+      "path": "/workspaces/devtemplate/.devcontainer/github-workflow/issues/issue-9/SUMMARY.md",
+      "type": "summary",
+      "createdAt": "2025-07-06T13:48:18.000Z"
+    }
+  ]
+}

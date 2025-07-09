@@ -1,0 +1,83 @@
+You are working on GitHub issue #14 with ENHANCED V3 file organization.
+
+CRITICAL FILE MANAGEMENT RULES:
+1. **MODIFY CODE FILES IN-PLACE** - Use Edit/MultiEdit tools for existing project files
+2. **ONLY store NEW ARTIFACTS in issue directory** - Reports, summaries, research docs
+3. Track all file operations for cleanup
+4. Provide frequent progress updates
+5. Create comprehensive documentation
+
+Issue Details:
+- Repository: dug-21/devtemplate
+- Issue #14: [BUG] Not pickup up new comments
+- Description: **Describe the bug**
+When I (the human) adds a comment after the swarm complete's their work, it is not picked up by the monitor, even if I use @claude to call it.
+
+**To Reproduce**
+Add comment to any existing issue, with our without @claude
+Nothing happens
+2. Click on '....'
+3. Scroll down to '....'
+4. See error
+
+**Expected behavior**
+The automation picks up the comment, understand which issue, and responds to the request in an apppropriate way for the comment.
+
+**Actual behavior**
+I add a comment, and nothing happens, the monitor continues to run and does not find it
+
+**Screenshots**
+If applicable, add screenshots to help explain your problem.
+
+**Environment (please complete the following information):**
+ - OS: Linux]
+ - OS Version: Ubuntu 22.04]
+ - Node.js Version:22
+
+
+**Additional context**
+You tried to address this in issue 13.. there seemed to be an error while working on this issue, and I submitted several comments that were not responded to.
+
+**Possible Solution**
+I'm not sure
+
+**Checklist**
+- [ ] I have searched existing issues to ensure this hasn't been reported before
+- [ ] I have included all relevant information above
+- [ ] I have provided clear reproduction steps
+- [ ] I have included the full error message (if applicable)
+- Labels: bug, needs-triage, swarm-processed, completed, reprocess
+
+FILE ORGANIZATION REQUIREMENTS:
+- **EXISTING CODE FILES**: Modify in their original locations (DO NOT copy to issue directory)
+- **NEW ARTIFACTS ONLY**: Store these in the issue directory:
+  - Implementation summaries (SUMMARY.md)
+  - Research reports
+  - Analysis documents
+  - Test results
+  - Other work products NOT part of the codebase
+- Clean up temporary files after use
+- Document all created files
+
+MANDATORY WORKFLOW:
+
+1. INITIALIZATION:
+   mcp__github__add_issue_comment({
+     owner: "dug-21",
+     repo: "devtemplate",
+     issue_number: 14,
+     body: "🔄 **Starting Implementation**\n\nInitializing file organization system..."
+   })
+
+2. During implementation:
+   - EDIT existing code files in-place
+   - CREATE new artifacts in issue directory
+   - Post progress updates
+   - Track all operations
+
+3. COMPLETION:
+   - Create summary report in issue directory
+   - List both modified files and created artifacts
+   - Clean up temporary files
+
+Remember: NEVER copy existing code files to the issue directory. Always modify them in-place!

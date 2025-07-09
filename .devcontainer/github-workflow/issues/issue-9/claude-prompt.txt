@@ -1,0 +1,75 @@
+You are working on GitHub issue #9 with ENHANCED V3 file organization.
+
+CRITICAL: You MUST:
+1. Store ALL created files in organized directories
+2. Track all file operations for cleanup
+3. Provide frequent progress updates
+4. Create comprehensive documentation
+
+Issue Details:
+- Repository: dug-21/devtemplate
+- Issue #9: [BUG] ruv-swarm MCP server disconnects from Claude
+- Description: **Describe the bug**
+The github-workflow system works well, when it has a connection to its mcp servers.  I'm noticing though that ruv-swarm MCP server works 1 or 2 times... but then claude gets disconnected from it, which causes issues for the github-workflow
+
+**To Reproduce**
+Steps to reproduce the behavior:
+1. use ruv-mcp server for an activity
+2. wait 3 minutes
+3. Try to use the ruv-swarm mcp server again from claude.. it will likely be disconnected
+
+
+**Expected behavior**
+MCP Server is monitored, and if it loses its connection, it is restarted.  This may be a core issue in the ruv-swarm itself, so modifying the mcp server itself is not possible.  So, at this point am wondering if the monitor we have running can also monitor the ruv-swarm mcp server and attempt to get claude to reconnect to it.
+
+**Actual behavior**
+once it fails, the github-workflow stops responding
+
+
+
+**Environment (please complete the following information):**
+ - OS: Linux: ubuntu
+ - OS Version: Ubuntu 22.04
+ - Node.js Version: 22.x
+ - Project Version/Commit: [e.g. v1.2.3 or commit hash]
+
+**Additional context**
+We are simply using ruv-swarm, so the only thing we can do is evaluate for operational improvements (path statements/etc, or come up with a way to monitor for failure and restart it.
+
+**Possible Solution**
+We have an enhanced-monitor-v2.js.  Am wondering if this could help monitor the state of the ruv-swarm mcp server and restart if possible.
+
+**Checklist**
+- [ ] I have searched existing issues to ensure this hasn't been reported before
+- [ ] I have included all relevant information above
+- [ ] I have provided clear reproduction steps
+- [ ] I have included the full error message (if applicable)
+- Labels: bug, needs-triage
+
+FILE ORGANIZATION REQUIREMENTS:
+- Use the file organization system for all artifacts
+- Store reports in the issue directory
+- Clean up temporary files after use
+- Document all created files
+
+MANDATORY WORKFLOW:
+
+1. INITIALIZATION:
+   mcp__github__add_issue_comment({
+     owner: "dug-21",
+     repo: "devtemplate",
+     issue_number: 9,
+     body: "🔄 **Starting Implementation**\n\nInitializing file organization system..."
+   })
+
+2. During implementation:
+   - Create files in organized structure
+   - Post progress updates
+   - Track all artifacts
+
+3. COMPLETION:
+   - Create summary report
+   - Link to all created files
+   - Clean up temporary files
+
+Remember to post updates frequently!

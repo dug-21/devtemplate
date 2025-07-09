@@ -1,336 +1,522 @@
+#!/usr/bin/env node
+
+/**
+ * Enhanced GitHub Automation V3 with File Organization
+ * Features:
+ * - Organized file storage in issue-specific directories
+ * - Robust cleanup in all scenarios
+ * - Comprehensive reporting with links
+ * - Real-time progress tracking
+ */
+
 const { Octokit } = require('@octokit/rest');
-const { exec } = require('child_process');
-const { promisify } = require('util');
+const { execSync } = require('child_process');
 const fs = require('fs').promises;
 const path = require('path');
+const EventEmitter = require('events');
+const FileOrganization = require('./file-organization');
+const AIAttribution = require('./ai-attribution');
+const EnhancedGitHubClient = require('./enhanced-github-client');
+const SecurityCheck = require('./issues/issue-11/security-check');
 
-const execAsync = promisify(exec);
-
-class GitHubWorkflowAutomation {
-  constructor(config) {
-    this.config = config;
-    this.octokit = new Octokit({
-      auth: process.env.AGENT_TOKEN || process.env.GITHUB_TOKEN
-    });
-    // Enhanced tracking to prevent reprocessing
-    this.processedTasksFile = '.devcontainer/github-workflow/.processed-tasks.json';
-    this.processedTasks = new Map();
-  }
-
-  async initialize() {
-    // Load previously processed tasks
-    try {
-      const data = await fs.readFile(this.processedTasksFile, 'utf8');
-      const processed = JSON.parse(data);
-      this.processedTasks = new Map(processed);
-    } catch (error) {
-      // File doesn't exist yet, start fresh
-      this.processedTasks = new Map();
-    }
-  }
-
-  async processIssue(issue) {
-    console.log(`🔄 Processing issue #${issue.number}: ${issue.title}`);
-    
-    // Check if we should skip this issue
-    if (this.shouldSkipIssue(issue)) {
-      console.log(`⏭️ Skipping issue #${issue.number} - filtered or already processed`);
-      return { success: true, skipped: true };
-    }
-    
-    // Check if already has swarm-processed label
-    const labels = issue.labels.map(l => l.name);
-    if (labels.includes('swarm-processed')) {
-      console.log(`✓ Issue #${issue.number} already has swarm-processed label`);
-      return { success: true, cached: true };
-    }
-    
-    try {
-      const phase = this.detectPhase(issue);
-      const actions = [];
-      
-      // Create unique task ID for tracking
-      const taskId = `${issue.number}-${issue.updated_at}-${phase}`;
-      
-      // Check if already processed
-      if (this.processedTasks.has(taskId)) {
-        console.log(`✓ Issue #${issue.number} already processed for phase ${phase}`);
-        return { success: true, cached: true };
-      }
-
-      // Process in parallel using ruv-swarm
-      const results = await this.processWithSwarm(issue, phase);
-      
-      // Mark as processed
-      this.processedTasks.set(taskId, {
-        timestamp: new Date().toISOString(),
-        phase,
-        results
-      });
-      await this.saveProcessedTasks();
-      
-      return { success: true, phase, results };
-    } catch (error) {
-      console.error(`❌ Error processing issue #${issue.number}:`, error);
-      return { success: false, error: error.message };
-    }
-  }
-
-  shouldSkipIssue(issue) {
-    // Skip if draft (for GitHub Projects support)
-    if (issue.draft) return true;
-    
-    // Skip if has ignore label
-    const labels = issue.labels.map(l => l.name);
-    if (labels.includes('automation:ignore') || labels.includes('no-automation')) {
-      return true;
-    }
-    
-    // Skip pull requests
-    if (issue.pull_request) return true;
-    
-    return false;
-  }
-
-  detectPhase(issue) {
-    const labels = issue.labels.map(l => l.name);
-    
-    // Check labels first
-    for (const label of labels) {
-      if (label.startsWith('phase:')) {
-        return label.replace('phase:', '');
-      }
-    }
-    
-    // Check project column (if available)
-    if (issue.project_column) {
-      const columnName = issue.project_column.name.toLowerCase();
-      if (columnName.includes('idea')) return 'idea';
-      if (columnName.includes('research')) return 'research';
-      if (columnName.includes('planning')) return 'planning';
-      if (columnName.includes('implementation')) return 'implementation';
-    }
-    
-    // Fallback to title analysis
-    const title = issue.title.toLowerCase();
-    if (title.includes('idea') || title.includes('concept')) return 'idea';
-    if (title.includes('research') || title.includes('analyze')) return 'research';
-    if (title.includes('plan') || title.includes('design')) return 'planning';
-    if (title.includes('implement') || title.includes('build')) return 'implementation';
-    
-    return null;
-  }
-
-  async processWithSwarm(issue, phase) {
-    const swarmConfig = this.config.phases[phase];
-    if (!swarmConfig) return null;
-
-    console.log(`🐝 Initiating parallel swarm processing for ${phase} phase`);
-    
-    // Create task context for Claude Code
-    const context = {
-      issue: {
-        number: issue.number,
-        title: issue.title,
-        body: issue.body || '',
-        url: `https://github.com/${this.config.github.owner}/${this.config.github.repo}/issues/${issue.number}`,
-        author: issue.user.login,
-        labels: issue.labels.map(l => l.name)
-      },
-      phase,
-      repository: `${this.config.github.owner}/${this.config.github.repo}`,
-      requirements: this.getPhaseRequirements(phase)
-    };
-    
-    // Save context for Claude Code to access
-    const contextFile = `.devcontainer/github-workflow/.swarm-context-${issue.number}.json`;
-    await fs.writeFile(contextFile, JSON.stringify(context, null, 2));
-    
-    // Use the orchestration script that properly sets up the swarm
-    const orchestrationScript = path.join(__dirname, 'orchestrate-github-issue.js');
-    
-    console.log(`🐝 Launching ruv-swarm orchestration for issue #${issue.number}...`);
-    
-    // Execute the orchestration with proper environment
-    const env = {
-      ...process.env,
-      AGENT_TOKEN: process.env.AGENT_TOKEN || process.env.GITHUB_TOKEN,
-      GITHUB_OWNER: this.config.github.owner,
-      GITHUB_REPO: this.config.github.repo
-    };
-    
-    const { stdout, stderr } = await execAsync(
-      `node ${orchestrationScript} ${contextFile}`,
-      { env }
-    );
-    
-    console.log(stdout);
-    if (stderr) console.error('Orchestration warnings:', stderr);
-    
-    try {
-      // Post initial comment to GitHub
-      await this.postSwarmStartComment(issue, phase, swarmConfig);
-      
-      // Track this task as processed
-      const taskId = `${issue.number}-${issue.updated_at}-${phase}`;
-      this.processedTasks.set(taskId, {
-        issueNumber: issue.number,
-        phase,
-        processedAt: new Date().toISOString(),
-        swarmId: `swarm-${Date.now()}`
-      });
-      await this.saveProcessedTasks();
-      
-      // Swarm is now orchestrating the task
-      console.log(`✅ Swarm orchestration initiated for issue #${issue.number}. Agents will coordinate to analyze and respond.`);
-      
-      // Clean up context file after a delay
-      setTimeout(async () => {
-        try {
-          await fs.unlink(contextFile);
-        } catch (error) {
-          // Ignore if already deleted
-        }
-      }, 300000); // 5 minutes
-      
-      return { swarmId: `swarm-${Date.now()}`, phase, initiated: true };
-      
-    } catch (error) {
-      console.error(`Failed to process with swarm:`, error);
-      await this.postErrorComment(issue, phase, error);
-      throw error;
-    }
-  }
-
-  getPhaseInstructions(phase) {
-    const instructions = {
-      idea: `Analyze the feasibility of this idea. Research similar implementations, evaluate complexity, identify challenges and opportunities.`,
-      
-      research: `Conduct thorough research on this topic. Find best practices, compare solutions, analyze trade-offs. Create comparison tables and provide actionable recommendations.`,
-      
-      planning: `Create a detailed implementation plan. Design the architecture, break down into tasks, estimate effort, identify risks. Include diagrams and technical specifications.`,
-      
-      implementation: `Provide implementation guidance. Create code templates, define testing strategy, specify deployment steps. Include example code and configuration.`
-    };
-    
-    return instructions[phase] || `Process this ${phase} issue with comprehensive analysis.`;
-  }
-
-  getPhaseRequirements(phase) {
-    return {
-      idea: ['feasibility analysis', 'complexity assessment', 'recommendations'],
-      research: ['best practices', 'comparison matrix', 'pros/cons analysis', 'recommendations'],
-      planning: ['architecture design', 'task breakdown', 'time estimates', 'risk assessment'],
-      implementation: ['code examples', 'testing approach', 'deployment guide', 'configuration']
-    }[phase] || [];
-  }
-
-  async postSwarmStartComment(issue, phase, swarmConfig) {
-    const topology = swarmConfig.topology || 'hierarchical';
-    const agentCount = swarmConfig.agents?.length || 3;
-    
-    const message = `🐝 **${phase.toUpperCase()} Swarm Initiated**
-
-Processing your issue with a dedicated ruv-swarm:
-- **Topology**: ${topology} (optimized for ${phase})
-- **Specialized Agents**: ${agentCount} agents working together
-- **Strategy**: ${swarmConfig.strategy || 'adaptive'}
-
-Your dedicated swarm is now analyzing this issue. Claude Code will execute the analysis and post comprehensive results shortly.
-
-⏳ Expected completion: 2-5 minutes
-
----
-*Powered by ruv-swarm + Claude Code integration*`;
-
-    await this.postComment(issue.number, message);
-  }
-
-  async postErrorComment(issue, phase, error) {
-    const message = `❌ **Swarm Processing Error**
-
-Failed to process ${phase} phase for this issue.
-
-**Error**: ${error.message || error}
-
-The team has been notified. You may need to process this manually or check the automation configuration.
-
----
-*If this persists, please check the automation logs or contact support.*`;
-
-    await this.postComment(issue.number, message);
-  }
-
-  async postComment(issueNumber, body) {
-    return this.octokit.rest.issues.createComment({
-      owner: this.config.github.owner,
-      repo: this.config.github.repo,
-      issue_number: issueNumber,
-      body
-    });
-  }
-
-  async addLabels(issue, labels) {
-    return this.octokit.rest.issues.addLabels({
-      owner: this.config.github.owner,
-      repo: this.config.github.repo,
-      issue_number: issue.number,
-      labels
-    });
-  }
-
-  async saveProcessedTasks() {
-    const data = Array.from(this.processedTasks.entries());
-    await fs.writeFile(this.processedTasksFile, JSON.stringify(data, null, 2));
-  }
-
-  // Enhanced to support GitHub Projects
-  async fetchIssuesWithProjects() {
-    const issues = await this.octokit.rest.issues.listForRepo({
-      owner: this.config.github.owner,
-      repo: this.config.github.repo,
-      state: 'open',
-      per_page: 100
-    });
-    
-    // Enhance with project data if available
-    if (this.config.github.projectNumber) {
-      try {
-        const projectData = await this.octokit.rest.projects.listCards({
-          column_id: this.config.github.projectColumnId
+class EnhancedGitHubAutomation extends EventEmitter {
+    constructor(config) {
+        super();
+        this.config = config;
+        this.octokit = new Octokit({
+            auth: config.github.token || process.env.AGENT_TOKEN || process.env.GITHUB_TOKEN
         });
         
-        // Merge project column data with issues
-        const projectIssueMap = new Map();
-        for (const card of projectData.data) {
-          if (card.content_url) {
-            const issueNumber = parseInt(card.content_url.split('/').pop());
-            projectIssueMap.set(issueNumber, card.column_url);
-          }
+        // Enhanced client for AI attribution
+        this.enhancedClient = new EnhancedGitHubClient(this.octokit, config);
+        
+        this.fileOrg = new FileOrganization();
+        this.securityCheck = new SecurityCheck();
+        this.logFile = path.join(__dirname, 'automation-enhanced-v3.log');
+        this.activeIssues = new Map();
+        this.updateInterval = 30000;
+        
+        // Track agent context
+        this.agentType = 'AUTOMATION';
+        this.sessionId = `session-${Date.now()}`;
+    }
+
+    async initialize() {
+        await this.fileOrg.initialize();
+        await this.log('File organization system initialized');
+    }
+
+    async log(message, level = 'INFO') {
+        const timestamp = new Date().toISOString();
+        const logEntry = `[${timestamp}] [${level}] ${message}\n`;
+        console.log(logEntry.trim());
+        await fs.appendFile(this.logFile, logEntry);
+    }
+
+    async processIssue(issue) {
+        const issueId = `${issue.number}`;
+        let issueDir = null;
+        let tempFiles = [];
+        
+        try {
+            await this.log(`🚀 Starting V3 processing for issue #${issue.number}: ${issue.title}`);
+            
+            // Create issue directory
+            issueDir = await this.fileOrg.createIssueDirectory(issue.number, issue);
+            await this.log(`Created issue directory: ${issueDir}`);
+            
+            // Track this active issue
+            this.activeIssues.set(issueId, {
+                number: issue.number,
+                title: issue.title,
+                startTime: Date.now(),
+                phase: 'initialization',
+                updates: [],
+                issueDir,
+                tempFiles: [],
+                modifiedFiles: [] // Track files modified in-place
+            });
+
+            // Add in-progress label
+            await this.updateIssueLabels(issue.number, 
+                [...(issue.labels?.map(l => l.name) || []), 'in-progress', 'swarm-active'],
+                ['ready', 'todo']
+            );
+            
+            // Post initial message
+            const reportUrl = this.fileOrg.getIssueReportUrl(
+                issue.number, 
+                `https://github.com/${this.config.github.owner}/${this.config.github.repo}`
+            );
+            
+            const initialComment = await this.postComment(issue.number, `🐝 **Enhanced Swarm V3 Activated**
+
+I'm processing this issue with improved file organization.
+
+**Features:**
+- ✅ All files stored in organized structure
+- ✅ Automatic cleanup of temporary files
+- ✅ Comprehensive reporting with links
+- ✅ Real-time progress updates
+
+**Issue Directory:** [View Files](${reportUrl})
+
+**Current Status:** 🟡 Initializing...
+**Progress:** 0%
+
+---
+*Updates will appear below*`);
+
+            // Start progress monitoring
+            const progressTimer = setInterval(async () => {
+                await this.postProgressUpdate(issueId);
+            }, this.updateInterval);
+
+            // Create comprehensive Claude prompt
+            const claudePrompt = this.createEnhancedClaudePromptV3(issue);
+            
+            // Store prompt in issue directory
+            const promptPath = await this.fileOrg.moveToIssueDir(
+                await this.createTempFile(claudePrompt, issueId, 'prompt', 'txt'),
+                issue.number,
+                'claude-prompt.txt'
+            );
+            
+            // Execute Claude with enhanced monitoring
+            const result = await this.executeClaudeWithMonitoringV3(issue, issueId);
+            
+            // Stop progress monitoring
+            clearInterval(progressTimer);
+            
+            // Create comprehensive summary
+            await this.createIssueSummary(issue, result);
+            
+            // Post final summary with links
+            await this.postFinalSummaryV3(issue);
+            
+            // Handle issue completion
+            await this.handleIssueCompletion(issue);
+            
+            // Cleanup temporary files
+            await this.cleanupIssueFiles(issueId, true);
+            
+            // Clean up tracking
+            this.activeIssues.delete(issueId);
+            
+            return { success: true, result, issueDir };
+            
+        } catch (error) {
+            await this.log(`Error processing issue #${issue.number}: ${error.message}`, 'ERROR');
+            
+            // Cleanup on error
+            await this.cleanupIssueFiles(issueId, false);
+            
+            // Post error message
+            await this.postComment(issue.number, `❌ **Error During Processing**
+
+An error occurred: ${error.message}
+
+The issue has been marked for manual review.`);
+            
+            // Update labels
+            await this.updateIssueLabels(issue.number,
+                ['error', 'needs-review'],
+                ['in-progress', 'swarm-active']
+            );
+            
+            throw error;
+        }
+    }
+
+    async createTempFile(content, issueId, prefix, extension) {
+        const tracking = this.activeIssues.get(issueId);
+        const tempPath = this.fileOrg.getTempPath(tracking.number, prefix, extension);
+        
+        // Security check before writing
+        try {
+            await this.securityCheck.safeWriteFile(tempPath, content);
+        } catch (error) {
+            await this.log(`SECURITY: ${error.message}`, 'ERROR');
+            // Write sanitized version instead
+            const sanitized = this.securityCheck.sanitizeObject(
+                typeof content === 'string' ? content : JSON.parse(content)
+            );
+            await fs.writeFile(tempPath, 
+                typeof sanitized === 'string' ? sanitized : JSON.stringify(sanitized, null, 2)
+            );
         }
         
-        // Add project column to issues
-        issues.data = issues.data.map(issue => ({
-          ...issue,
-          project_column: projectIssueMap.get(issue.number)
-        }));
+        tracking.tempFiles.push(tempPath);
+        return tempPath;
+    }
+
+    async cleanupIssueFiles(issueId, success) {
+        const tracking = this.activeIssues.get(issueId);
+        if (!tracking) return;
+
+        // Clean up temp files
+        for (const tempFile of tracking.tempFiles) {
+            try {
+                await fs.unlink(tempFile);
+            } catch (error) {
+                await this.log(`Failed to delete temp file ${tempFile}: ${error.message}`, 'WARN');
+            }
+        }
+
+        // Clean up general temp directory
+        await this.fileOrg.cleanupTemp(1); // Clean files older than 1 hour
+    }
+
+    createEnhancedClaudePromptV3(issue) {
+        return `You are working on GitHub issue #${issue.number} with ENHANCED V3 file organization.
+
+CRITICAL FILE MANAGEMENT RULES:
+1. **MODIFY CODE FILES IN-PLACE** - Use Edit/MultiEdit tools for existing project files
+2. **ONLY store NEW ARTIFACTS in issue directory** - Reports, summaries, research docs
+3. Track all file operations for cleanup
+4. Provide frequent progress updates
+5. Create comprehensive documentation
+
+Issue Details:
+- Repository: ${this.config.github.owner}/${this.config.github.repo}
+- Issue #${issue.number}: ${issue.title}
+- Description: ${issue.body || 'No description provided'}
+- Labels: ${issue.labels?.map(l => l.name).join(', ') || 'None'}
+
+FILE ORGANIZATION REQUIREMENTS:
+- **EXISTING CODE FILES**: Modify in their original locations (DO NOT copy to issue directory)
+- **NEW ARTIFACTS ONLY**: Store these in the issue directory:
+  - Implementation summaries (SUMMARY.md)
+  - Research reports
+  - Analysis documents
+  - Test results
+  - Other work products NOT part of the codebase
+- Clean up temporary files after use
+- Document all created files
+
+MANDATORY WORKFLOW:
+
+1. INITIALIZATION:
+   mcp__github__add_issue_comment({
+     owner: "${this.config.github.owner}",
+     repo: "${this.config.github.repo}",
+     issue_number: ${issue.number},
+     body: "🔄 **Starting Implementation**\\n\\nInitializing file organization system..."
+   })
+
+2. During implementation:
+   - EDIT existing code files in-place
+   - CREATE new artifacts in issue directory
+   - Post progress updates
+   - Track all operations
+
+3. COMPLETION:
+   - Create summary report in issue directory
+   - List both modified files and created artifacts
+   - Clean up temporary files
+
+Remember: NEVER copy existing code files to the issue directory. Always modify them in-place!`;
+    }
+
+    async executeClaudeWithMonitoringV3(issue, issueId) {
+        await this.log(`Executing Claude V3 for issue #${issue.number}`);
         
-      } catch (error) {
-        console.warn('⚠️ Could not fetch project data:', error.message);
-      }
+        const tracking = this.activeIssues.get(issueId);
+        tracking.phase = 'claude-execution';
+        
+        try {
+            // Create MCP config WITHOUT exposing tokens
+            // SECURITY: Never write tokens to files - pass via environment only
+            const mcpConfig = {
+                mcpServers: {
+                    "ruv-swarm": {
+                        command: "npx",
+                        args: ["ruv-swarm", "mcp", "start"]
+                    },
+                    github: {
+                        command: "npx",
+                        args: ["@modelcontextprotocol/server-github"]
+                        // Token will be passed via environment variables only
+                    }
+                }
+            };
+            
+            const mcpConfigPath = await this.createTempFile(
+                JSON.stringify(mcpConfig, null, 2),
+                issueId,
+                'mcp-config',
+                'json'
+            );
+            
+            const promptPath = this.fileOrg.getIssuePath(issue.number, 'claude-prompt.txt');
+            
+            // Execute Claude
+            const command = `claude --print --dangerously-skip-permissions --mcp-config "${mcpConfigPath}" < "${promptPath}"`;
+            
+            tracking.phase = 'claude-running';
+            this.usingClaude = true; // Set flag for attribution
+            
+            const result = execSync(command, {
+                encoding: 'utf8',
+                maxBuffer: 20 * 1024 * 1024,
+                env: {
+                    ...process.env,
+                    AGENT_TOKEN: this.config.github.token || process.env.AGENT_TOKEN
+                }
+            });
+            
+            // Store execution log
+            await fs.writeFile(
+                this.fileOrg.getIssuePath(issue.number, 'execution.log'),
+                result
+            );
+            
+            tracking.phase = 'complete';
+            return result;
+            
+        } catch (error) {
+            tracking.phase = 'error';
+            throw error;
+        }
+    }
+
+    async createIssueSummary(issue, result) {
+        const issueDir = this.fileOrg.getIssuePath(issue.number);
+        const files = await fs.readdir(issueDir);
+        
+        const summary = {
+            overview: `Issue #${issue.number} has been processed successfully.`,
+            files: files.map(f => ({ name: f })),
+            details: `Execution completed at ${new Date().toISOString()}`
+        };
+        
+        await this.fileOrg.createIssueSummary(issue.number, summary);
+    }
+
+    async postFinalSummaryV3(issue) {
+        const reportUrl = this.fileOrg.getIssueReportUrl(
+            issue.number,
+            `https://github.com/${this.config.github.owner}/${this.config.github.repo}`
+        );
+        
+        const issueDir = this.fileOrg.getIssuePath(issue.number);
+        const files = await fs.readdir(issueDir);
+        
+        // Get information about modified files vs created artifacts
+        const tracking = this.activeIssues.get(`${issue.number}`);
+        const modifiedFiles = tracking?.modifiedFiles || [];
+        const createdArtifacts = files.filter(f => !f.endsWith('.md') || f === 'SUMMARY.md');
+        
+        const summary = `🎉 **Processing Complete!**
+
+All changes have been implemented successfully.
+
+**📝 Modified Files (In-Place):**
+${modifiedFiles.length > 0 ? modifiedFiles.map(f => `- \`${f}\` - Modified in original location`).join('\n') : '- No code files were modified'}
+
+**📁 Created Artifacts:** [View in Issue Directory](${reportUrl})
+${createdArtifacts.map(f => `- \`${f}\``).join('\n')}
+
+**Summary:** [View Summary](${reportUrl}/SUMMARY.md)
+
+---
+
+✅ Code files modified in-place (not copied)
+✅ Artifacts stored in issue directory
+✅ All temporary files cleaned up
+✅ Documentation generated`;
+
+        await this.postComment(issue.number, summary);
+    }
+
+    async postProgressUpdate(issueId) {
+        const tracking = this.activeIssues.get(issueId);
+        if (!tracking) return;
+        
+        const elapsed = Date.now() - tracking.startTime;
+        const minutes = Math.floor(elapsed / 60000);
+        const seconds = Math.floor((elapsed % 60000) / 1000);
+        
+        const lastUpdateTime = tracking.lastProgressUpdate || 0;
+        if (Date.now() - lastUpdateTime < 25000) return;
+        
+        tracking.lastProgressUpdate = Date.now();
+        
+        const reportUrl = this.fileOrg.getIssueReportUrl(
+            tracking.number,
+            `https://github.com/${this.config.github.owner}/${this.config.github.repo}`
+        );
+        
+        const progressMessage = `🔄 **Progress Update**
+
+**Phase:** ${tracking.phase}
+**Elapsed:** ${minutes}m ${seconds}s
+**Files:** [View Current Files](${reportUrl})
+
+*Working on implementation...*`;
+        
+        try {
+            await this.postComment(tracking.number, progressMessage);
+        } catch (error) {
+            await this.log(`Failed to post progress: ${error.message}`, 'WARN');
+        }
+    }
+
+    async postComment(issueNumber, body, options = {}) {
+        // Use enhanced client for AI attribution
+        return this.enhancedClient.postComment(issueNumber, body, {
+            agentType: this.getAgentType(),
+            sessionId: this.sessionId,
+            phase: this.currentPhase,
+            ...options
+        });
     }
     
-    return issues.data;
-  }
-
-  async saveProcessedTasks() {
-    try {
-      const data = JSON.stringify([...this.processedTasks.entries()], null, 2);
-      await fs.writeFile(this.processedTasksFile, data);
-    } catch (error) {
-      console.error('Failed to save processed tasks:', error);
+    getAgentType() {
+        // Check for specific agent context
+        if (this.agentType) return this.agentType;
+        
+        // Check for swarm context
+        if (this.swarmRole) {
+            switch(this.swarmRole) {
+                case 'researcher': return 'SWARM_RESEARCHER';
+                case 'coder': return 'SWARM_CODER';
+                case 'analyst': return 'SWARM_ANALYST';
+                case 'coordinator': return 'SWARM_COORDINATOR';
+                default: return 'RUV_SWARM';
+            }
+        }
+        
+        // Check for Claude context
+        if (process.env.CLAUDE_CONTEXT === 'true' || this.usingClaude) {
+            return 'CLAUDE';
+        }
+        
+        // Default to automation
+        return 'AUTOMATION';
     }
-  }
+
+    async updateIssueLabels(issueNumber, addLabels, removeLabels = []) {
+        try {
+            const { data: issue } = await this.octokit.issues.get({
+                owner: this.config.github.owner,
+                repo: this.config.github.repo,
+                issue_number: issueNumber
+            });
+            
+            let labels = issue.labels.map(l => l.name);
+            labels = labels.filter(l => !removeLabels.includes(l));
+            
+            addLabels.forEach(label => {
+                if (!labels.includes(label)) {
+                    labels.push(label);
+                }
+            });
+            
+            await this.octokit.issues.setLabels({
+                owner: this.config.github.owner,
+                repo: this.config.github.repo,
+                issue_number: issueNumber,
+                labels
+            });
+        } catch (error) {
+            await this.log(`Failed to update labels: ${error.message}`, 'ERROR');
+        }
+    }
+
+    async handleIssueCompletion(issue) {
+        const labels = issue.labels?.map(l => l.name) || [];
+        
+        // Check if this is a bug issue - bugs should NOT be auto-closed
+        const isBugIssue = labels.includes('bug') || 
+                          issue.title.toLowerCase().includes('[bug]') ||
+                          issue.body?.toLowerCase().includes('**describe the bug**');
+        
+        if (labels.includes('auto-close-on-complete') && !labels.includes('keep-open') && !isBugIssue) {
+            await this.postComment(issue.number, `🔔 **Auto-Close Notice**
+
+This issue will be automatically closed in 60 seconds.
+
+To prevent closure, add the \`keep-open\` label.`);
+            
+            await new Promise(resolve => setTimeout(resolve, 60000));
+            
+            const { data: updatedIssue } = await this.octokit.issues.get({
+                owner: this.config.github.owner,
+                repo: this.config.github.repo,
+                issue_number: issue.number
+            });
+            
+            if (!updatedIssue.labels.map(l => l.name).includes('keep-open')) {
+                await this.octokit.issues.update({
+                    owner: this.config.github.owner,
+                    repo: this.config.github.repo,
+                    issue_number: issue.number,
+                    state: 'closed'
+                });
+                
+                await this.postComment(issue.number, `✅ **Issue Closed**
+
+This issue has been automatically closed after successful completion.`);
+            }
+        } else if (isBugIssue) {
+            // For bug issues, add a note but keep them open
+            await this.postComment(issue.number, `🐛 **Bug Fix Complete**
+
+The bug has been fixed and the changes have been implemented.
+
+**Note:** Bug issues remain open for verification and tracking purposes.
+
+To close this issue:
+- Verify the fix is working as expected
+- Close manually if satisfied with the resolution`);
+        }
+        
+        await this.updateIssueLabels(issue.number, 
+            ['swarm-processed', 'completed'],
+            ['in-progress', 'swarm-active']
+        );
+    }
 }
 
-module.exports = { GitHubWorkflowAutomation };
+module.exports = EnhancedGitHubAutomation;

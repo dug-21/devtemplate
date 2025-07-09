@@ -1,0 +1,14 @@
+{
+  "issueNumber": 10,
+  "title": "[BUG] All issue updates are coming from my userid",
+  "createdAt": "2025-07-06T17:34:45Z",
+  "processedAt": "2025-07-06T17:43:48.350Z",
+  "labels": [
+    "bug",
+    "needs-triage",
+    "in-progress",
+    "swarm-active"
+  ],
+  "state": "open",
+  "files": []
+}

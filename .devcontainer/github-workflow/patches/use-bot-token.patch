@@ -1,0 +1,26 @@
+--- a/monitor-enhanced.js
++++ b/monitor-enhanced.js
+@@ -173,7 +173,9 @@ class EnhancedGitHubMonitorV3 {
+     constructor(config) {
+         this.config = config;
+         this.octokit = new Octokit({
+-            auth: config.github.token || process.env.AGENT_TOKEN || process.env.GITHUB_TOKEN
++            // Use bot token first, fall back to personal token
++            // This ensures monitor comments come from bot account
++            auth: process.env.BOT_GITHUB_TOKEN || config.github.token || process.env.AGENT_TOKEN || process.env.GITHUB_TOKEN
+         });
+         this.automation = new EnhancedGitHubAutomation(config);
+         this.lastCheckFile = path.join(__dirname, '.last-check-enhanced-v3');
+
+--- a/automation-enhanced.js
++++ b/automation-enhanced.js
+@@ -68,7 +68,8 @@ class EnhancedGitHubClient {
+     constructor(config) {
+         this.config = config;
+         this.octokit = new Octokit({
+-            auth: config.github?.token || process.env.AGENT_TOKEN || process.env.GITHUB_TOKEN
++            // Use bot token for all automation comments
++            auth: process.env.BOT_GITHUB_TOKEN || config.github?.token || process.env.AGENT_TOKEN || process.env.GITHUB_TOKEN
+         });
+         this.owner = config.github?.owner || 'ruvnet';
+         this.repo = config.github?.repo || 'bot-test';

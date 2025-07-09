@@ -1,0 +1,31 @@
+# Security: Never commit temporary files that might contain tokens
+.temp/
+*.temp
+*-temp-*
+
+# MCP config files that might contain tokens
+mcp-config*.json
+*mcp-config*.json
+
+# Environment files
+.env
+.env.*
+
+# Log files that might contain sensitive data
+*.log
+automation-*.log
+
+# Temporary issue files
+temp-*
+*-temp.*
+
+# Session and state files
+.session*
+.state*
+
+# Node modules
+node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db

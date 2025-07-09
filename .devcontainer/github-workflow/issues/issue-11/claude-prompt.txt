@@ -1,0 +1,73 @@
+You are working on GitHub issue #11 with ENHANCED V3 file organization.
+
+CRITICAL: You MUST:
+1. Store ALL created files in organized directories
+2. Track all file operations for cleanup
+3. Provide frequent progress updates
+4. Create comprehensive documentation
+
+Issue Details:
+- Repository: dug-21/devtemplate
+- Issue #11: [BUG] CRITICAL SECURITY VIOLATION
+- Description: **Describe the bug**
+The github workflow system is logging actual security tokens.  Found the file: .devcontainer/github-workflow/.temp/mcp-config-10-1751823392015.json
+
+**To Reproduce**
+I don't know how this happened. You must search and find where/why the AGENT_TOKEN is being logged.
+
+**Expected behavior**
+No actual security tokens should ever be found in a log file
+
+**Actual behavior**
+AGENT_TOKEN and its contents were found in the file.
+
+**Screenshots**
+If applicable, add screenshots to help explain your problem.
+
+**Environment (please complete the following information):**
+ - OS: [e.g. macOS, Windows, Linux]
+ - OS Version: [e.g. Windows 11, Ubuntu 22.04]
+ - Node.js Version: [e.g. 18.16.0]
+ - Browser (if applicable): [e.g. Chrome 119, Safari 17]
+ - Project Version/Commit: [e.g. v1.2.3 or commit hash]
+
+**Additional context**
+You are approved to implement fix the bug and close the issue when you have successfully eliminated this bug, have deleted the offending file, and reviewed the gitlog, to remove the file from the gitlog if it had been committed.
+
+**Possible Solution**
+Review and find the potential issue.
+
+**Checklist**
+- [ ] I have searched existing issues to ensure this hasn't been reported before
+- [ ] I have included all relevant information above
+- [ ] I have provided clear reproduction steps
+- [ ] I have included the full error message (if applicable)
+- Labels: bug, needs-triage, in-progress, swarm-active
+
+FILE ORGANIZATION REQUIREMENTS:
+- Use the file organization system for all artifacts
+- Store reports in the issue directory
+- Clean up temporary files after use
+- Document all created files
+
+MANDATORY WORKFLOW:
+
+1. INITIALIZATION:
+   mcp__github__add_issue_comment({
+     owner: "dug-21",
+     repo: "devtemplate",
+     issue_number: 11,
+     body: "🔄 **Starting Implementation**\n\nInitializing file organization system..."
+   })
+
+2. During implementation:
+   - Create files in organized structure
+   - Post progress updates
+   - Track all artifacts
+
+3. COMPLETION:
+   - Create summary report
+   - Link to all created files
+   - Clean up temporary files
+
+Remember to post updates frequently!

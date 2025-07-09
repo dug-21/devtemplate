@@ -1,0 +1,23 @@
+{
+  "issueNumber": 14,
+  "title": "[BUG] Not pickup up new comments",
+  "createdAt": "2025-07-06T22:41:13Z",
+  "processedAt": "2025-07-06T22:53:05.519Z",
+  "labels": [
+    "bug",
+    "needs-triage",
+    "swarm-processed",
+    "completed",
+    "reprocess"
+  ],
+  "state": "open",
+  "files": [
+    {
+      "path": "/workspaces/devtemplate/.devcontainer/github-workflow/issues/issue-14/claude-prompt.txt",
+      "type": ".txt",
+      "createdAt": "2025-07-06T22:53:06.994Z"
+    }
+  ],
+  "modifiedFiles": [],
+  "artifacts": []
+}

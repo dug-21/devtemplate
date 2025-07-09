@@ -33,3 +33,4 @@ out/.monitor-state.json
 .devcontainer/github-workflow/.processed-issues.json
 .devcontainer/github-workflow/logs/
 .monitor-state.json
+.devcontainer/github-workflow/tmp/

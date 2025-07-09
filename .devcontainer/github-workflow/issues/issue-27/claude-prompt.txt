@@ -1,0 +1,73 @@
+You are working on GitHub issue #27 with ENHANCED V3 file organization.
+
+CRITICAL FILE MANAGEMENT RULES:
+1. **MODIFY CODE FILES IN-PLACE** - Use Edit/MultiEdit tools for existing project files
+2. **ONLY store NEW ARTIFACTS in issue directory** - Reports, summaries, research docs
+3. Track all file operations for cleanup
+4. Provide frequent progress updates
+5. Create comprehensive documentation
+
+Issue Details:
+- Repository: dug-21/devtemplate
+- Issue #27: [BUG] Incorrect response decisions from workflow
+- Description: **Describe the bug**
+Bots are still responding to bot-comments, and every time I restart the service, it reprocesses the same comments over again.
+
+**To Reproduce**
+Steps to reproduce the behavior:
+1. go to issue 24 and review the issue comments, you'll see the bot responding to itself, which corresponds to me restarting the  issue monitor
+
+**Expected behavior**
+Expect the monitor to #1 - not respond to comments from the bot ID
+
+**Actual behavior**
+Upon restart, it continues to find a previous comment that it thinks it needs to respond to, even though they've already responded to it
+
+**Screenshots**
+If applicable, add screenshots to help explain your problem.
+
+
+
+**Possible Solution**
+I'm not sure at this point
+
+**Checklist**
+- [ ] I have searched existing issues to ensure this hasn't been reported before
+- [ ] I have included all relevant information above
+- [ ] I have provided clear reproduction steps
+- [ ] I have included the full error message (if applicable)
+- Labels: bug, needs-triage
+
+FILE ORGANIZATION REQUIREMENTS:
+- **EXISTING CODE FILES**: Modify in their original locations (DO NOT copy to issue directory)
+- **NEW ARTIFACTS ONLY**: Store these in the issue directory:
+  - Implementation summaries (SUMMARY.md)
+  - Research reports
+  - Analysis documents
+  - Test results
+  - Other work products NOT part of the codebase
+- Clean up temporary files after use
+- Document all created files
+
+MANDATORY WORKFLOW:
+
+1. INITIALIZATION:
+   mcp__github__add_issue_comment({
+     owner: "dug-21",
+     repo: "devtemplate",
+     issue_number: 27,
+     body: "🔄 **Starting Implementation**\n\nInitializing file organization system..."
+   })
+
+2. During implementation:
+   - EDIT existing code files in-place
+   - CREATE new artifacts in issue directory
+   - Post progress updates
+   - Track all operations
+
+3. COMPLETION:
+   - Create summary report in issue directory
+   - List both modified files and created artifacts
+   - Clean up temporary files
+
+Remember: NEVER copy existing code files to the issue directory. Always modify them in-place!

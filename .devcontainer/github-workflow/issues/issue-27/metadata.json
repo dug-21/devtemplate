@@ -1,0 +1,25 @@
+{
+  "issueNumber": 27,
+  "title": "[BUG] Incorrect response decisions from workflow",
+  "createdAt": "2025-07-09T01:48:52Z",
+  "processedAt": "2025-07-09T02:08:31.135Z",
+  "labels": [
+    "bug",
+    "needs-triage"
+  ],
+  "state": "open",
+  "files": [
+    {
+      "path": "/workspaces/devtemplate/.devcontainer/github-workflow/issues/issue-27/claude-prompt.txt",
+      "type": ".txt",
+      "createdAt": "2025-07-09T02:08:32.356Z"
+    },
+    {
+      "path": "/workspaces/devtemplate/.devcontainer/github-workflow/issues/issue-27/SUMMARY.md",
+      "type": "summary",
+      "createdAt": "2025-07-09T02:12:36.138Z"
+    }
+  ],
+  "modifiedFiles": [],
+  "artifacts": []
+}

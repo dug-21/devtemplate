@@ -1,0 +1,218 @@
+name: "HDD: Prototype Sprint (Enhanced)"
+description: Rapidly prototype multiple approaches using mocks before full implementation
+title: "[HDD-Prototype] "
+labels: ["phase:prototype", "hdd:active", "swarm-ready"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🚀 Hypothesis-Driven Development - Enhanced Prototype Sprint Phase
+        
+        This phase uses a two-stage approach:
+        1. **Mock Stage**: Rapid prototypes with mocked components (1-2 days)
+        2. **Build Stage**: Full implementation of selected approach (2-3 days)
+        
+  - type: input
+    id: hypothesis_issue
+    attributes:
+      label: Discovery Issue Reference
+      description: Link to the hypothesis discovery issue
+      placeholder: "#123"
+    validations:
+      required: true
+      
+  - type: textarea
+    id: hypothesis_recap
+    attributes:
+      label: Hypothesis Recap
+      description: Briefly restate the hypothesis being tested
+      placeholder: "We believe that [feature] will [outcome] as measured by [metric]"
+    validations:
+      required: true
+      
+  - type: dropdown
+    id: prototype_stage
+    attributes:
+      label: Current Stage
+      description: Which prototyping stage are you in?
+      options:
+        - "Stage 1: Mock Prototypes"
+        - "Stage 2: Full Build"
+      default: 0
+    validations:
+      required: true
+      
+  - type: textarea
+    id: mock_approaches
+    attributes:
+      label: Mock Prototype Approaches (Stage 1)
+      description: Describe 3+ lightweight approaches using mocks/stubs
+      value: |
+        ## Approach A: [Name]
+        **Mock Description**: 
+        - UI: Figma/wireframe mockup
+        - API: Stubbed responses (JSON files)
+        - Logic: Pseudocode or flowcharts
+        - Data: Sample datasets
+        **Key Assumptions to Test**: 
+        **Estimated Full Build Time**: 
+        **Risk Level**: Low/Medium/High
+        
+        ## Approach B: [Name]
+        **Mock Description**: 
+        - UI: Clickable prototype
+        - API: Mock service (e.g., json-server)
+        - Logic: Simplified algorithms
+        - Data: Synthetic data
+        **Key Assumptions to Test**: 
+        **Estimated Full Build Time**: 
+        **Risk Level**: Low/Medium/High
+        
+        ## Approach C: [Name]
+        **Mock Description**: 
+        - UI: Static HTML/CSS
+        - API: Hardcoded responses
+        - Logic: State machines
+        - Data: CSV fixtures
+        **Key Assumptions to Test**: 
+        **Estimated Full Build Time**: 
+        **Risk Level**: Low/Medium/High
+    validations:
+      required: true
+      
+  - type: textarea
+    id: mock_evaluation_criteria
+    attributes:
+      label: Mock Evaluation Criteria (Stage 1)
+      description: Lightweight criteria for comparing mocks
+      value: |
+        Quick Tests (Per Mock):
+        - [ ] User flow completeness (can user achieve goal?)
+        - [ ] Technical feasibility check (are APIs available?)
+        - [ ] Performance estimation (will it scale?)
+        - [ ] Complexity assessment (maintainable?)
+        - [ ] Cost projection (development hours)
+        
+        Decision Factors:
+        - [ ] Stakeholder preference (demo feedback)
+        - [ ] Technical risk assessment
+        - [ ] Resource requirements
+        - [ ] Time to market
+        - [ ] Alignment with hypothesis
+    validations:
+      required: true
+      
+  - type: textarea
+    id: mock_results
+    attributes:
+      label: Mock Stage Results
+      description: Results from lightweight prototyping
+      placeholder: |
+        ## Mock Comparison Matrix
+        | Criteria | Approach A | Approach B | Approach C |
+        |----------|------------|------------|------------|
+        | User Flow | ✅ Complete | ✅ Complete | ⚠️ Partial |
+        | Feasibility | ✅ High | ⚠️ Medium | ✅ High |
+        | Performance | ⚠️ Concerns | ✅ Good | ✅ Good |
+        | Complexity | ✅ Low | ❌ High | ⚠️ Medium |
+        | Cost (hours) | 40 | 80 | 60 |
+        
+        **Selected Approach**: [A/B/C]
+        **Rationale**: 
+    validations:
+      required: false
+      
+  - type: textarea
+    id: full_build_plan
+    attributes:
+      label: Full Build Plan (Stage 2)
+      description: Detailed plan for building the selected approach
+      value: |
+        ## Selected Approach: [Name from Stage 1]
+        
+        ### Implementation Breakdown
+        - [ ] Core architecture setup
+        - [ ] Database schema
+        - [ ] API endpoints
+        - [ ] Business logic
+        - [ ] UI components
+        - [ ] Integration points
+        - [ ] Test suite
+        
+        ### Technical Decisions
+        - Framework/Libraries:
+        - Architecture Pattern:
+        - Data Storage:
+        - External Dependencies:
+        
+        ### Build Timeline
+        - Day 1: 
+        - Day 2: 
+        - Day 3: 
+        
+        ### Success Criteria
+        - [ ] All mock assumptions validated
+        - [ ] Performance targets met
+        - [ ] Code coverage >80%
+        - [ ] Integration tests passing
+    validations:
+      required: false
+      
+  - type: dropdown
+    id: sprint_duration
+    attributes:
+      label: Total Sprint Duration
+      description: Time for both mock and build stages
+      options:
+        - 3-4 days (1 mock + 2-3 build)
+        - 5 days (2 mock + 3 build)
+        - 1 week (2 mock + 4-5 build)
+      default: 0
+    validations:
+      required: true
+      
+  - type: textarea
+    id: ai_agent_assignments
+    attributes:
+      label: AI Agent Assignments
+      description: Different agents for each stage
+      value: |
+        ## Stage 1: Mock Prototypes
+        All Approaches:
+        - [ ] Architect Agent - Design mockups and architecture
+        - [ ] Analyst Agent - Feasibility and risk assessment
+        - [ ] UX Agent - User flow validation
+        
+        ## Stage 2: Full Build
+        Selected Approach:
+        - [ ] Builder Agent - Core implementation
+        - [ ] Tester Agent - Test development
+        - [ ] Optimizer Agent - Performance tuning
+        - [ ] Documenter Agent - API and user docs
+        
+  - type: textarea
+    id: cost_benefit_analysis
+    attributes:
+      label: Cost-Benefit Analysis
+      description: Track the efficiency gains from staged approach
+      value: |
+        ## Traditional Approach (Building 3 full prototypes)
+        - Estimated Time: [X days × 3 = Y days]
+        - Estimated Cost: [hours × rate × 3]
+        - Risk: High (may build wrong thing)
+        
+        ## Staged Approach (3 mocks + 1 build)
+        - Mock Time: [X hours × 3 mocks]
+        - Build Time: [Y days × 1 build]
+        - Total Time: [mock + build time]
+        - Cost Savings: [traditional - staged]
+        - Risk: Low (validated before build)
+        
+        ## Efficiency Gain
+        - Time Saved: [%]
+        - Cost Saved: [%]
+        - Risk Reduced: [High → Low]
+
+---
+assignees: []
+projects: []

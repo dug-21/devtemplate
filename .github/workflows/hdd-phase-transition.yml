@@ -1,0 +1,280 @@
+name: HDD Phase Transition
+description: Automated phase progression for Hypothesis-Driven Development
+
+on:
+  issue_comment:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: 'Issue number to transition'
+        required: true
+      target_phase:
+        description: 'Target phase (prototype/validation/evolution)'
+        required: true
+        type: choice
+        options:
+          - prototype
+          - validation
+          - evolution
+
+jobs:
+  check-transition:
+    if: |
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '/advance-phase')) ||
+      github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          
+      - name: Parse transition request
+        id: parse
+        run: |
+          if [ "${{ github.event_name }}" = "issue_comment" ]; then
+            echo "issue_number=${{ github.event.issue.number }}" >> $GITHUB_OUTPUT
+            # Extract target phase from comment if specified
+            if [[ "${{ github.event.comment.body }}" =~ /advance-phase[[:space:]]+([a-z]+) ]]; then
+              echo "target_phase=${BASH_REMATCH[1]}" >> $GITHUB_OUTPUT
+            else
+              echo "target_phase=auto" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "issue_number=${{ github.event.inputs.issue_number }}" >> $GITHUB_OUTPUT
+            echo "target_phase=${{ github.event.inputs.target_phase }}" >> $GITHUB_OUTPUT
+          fi
+          
+      - name: Get issue details
+        id: issue
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const issue = await github.rest.issues.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: ${{ steps.parse.outputs.issue_number }}
+            });
+            
+            const labels = issue.data.labels.map(l => l.name);
+            let currentPhase = 'unknown';
+            
+            if (labels.includes('phase:hypothesis')) currentPhase = 'hypothesis';
+            else if (labels.includes('phase:prototype')) currentPhase = 'prototype';
+            else if (labels.includes('phase:validation')) currentPhase = 'validation';
+            else if (labels.includes('phase:evolution')) currentPhase = 'evolution';
+            
+            core.setOutput('current_phase', currentPhase);
+            core.setOutput('labels', labels.join(','));
+            return issue.data;
+            
+      - name: Validate exit criteria
+        id: validate
+        run: |
+          CURRENT_PHASE="${{ steps.issue.outputs.current_phase }}"
+          TARGET_PHASE="${{ steps.parse.outputs.target_phase }}"
+          
+          # Determine next phase if auto
+          if [ "$TARGET_PHASE" = "auto" ]; then
+            case $CURRENT_PHASE in
+              hypothesis) TARGET_PHASE="prototype" ;;
+              prototype) TARGET_PHASE="validation" ;;
+              validation) TARGET_PHASE="evolution" ;;
+              evolution) 
+                echo "Evolution phase is final"
+                exit 1
+                ;;
+              *)
+                echo "Unknown current phase: $CURRENT_PHASE"
+                exit 1
+                ;;
+            esac
+          fi
+          
+          echo "target_phase=$TARGET_PHASE" >> $GITHUB_OUTPUT
+          
+          # Create validation checklist
+          case $CURRENT_PHASE in
+            hypothesis)
+              cat > criteria.md << EOF
+          ## Discovery Phase Exit Criteria
+          - [ ] Hypothesis clearly stated
+          - [ ] Success metrics defined
+          - [ ] Assumptions documented
+          - [ ] Risk assessment complete
+          - [ ] Discovery research complete
+          EOF
+              ;;
+            prototype)
+              cat > criteria.md << EOF
+          ## Prototype Phase Exit Criteria
+          - [ ] Multiple prototypes built (minimum 3)
+          - [ ] All prototypes tested
+          - [ ] Evaluation criteria applied
+          - [ ] Prototype selected
+          - [ ] Decision documented
+          EOF
+              ;;
+            validation)
+              cat > criteria.md << EOF
+          ## Validation Phase Exit Criteria
+          - [ ] All validation tests executed
+          - [ ] Metrics measured against targets
+          - [ ] Go/No-Go decision made
+          - [ ] Results documented
+          - [ ] Next steps defined
+          EOF
+              ;;
+          esac
+          
+      - name: Check artifacts exist
+        id: artifacts
+        run: |
+          ISSUE_DIR="issues/issue-${{ steps.parse.outputs.issue_number }}"
+          
+          # Check for required artifacts based on phase
+          case "${{ steps.issue.outputs.current_phase }}" in
+            hypothesis)
+              REQUIRED_FILES=(
+                "$ISSUE_DIR/hypothesis/statement.md"
+                "$ISSUE_DIR/hypothesis/assumptions.md"
+                "$ISSUE_DIR/hypothesis/metrics.md"
+              )
+              ;;
+            prototype)
+              REQUIRED_FILES=(
+                "$ISSUE_DIR/prototypes/v1/README.md"
+                "$ISSUE_DIR/prototypes/comparison.md"
+                "$ISSUE_DIR/prototypes/decision.md"
+              )
+              ;;
+            validation)
+              REQUIRED_FILES=(
+                "$ISSUE_DIR/validation/test-results.md"
+                "$ISSUE_DIR/validation/metrics-actual.md"
+                "$ISSUE_DIR/validation/decision-record.md"
+              )
+              ;;
+          esac
+          
+          MISSING_FILES=""
+          for file in "${REQUIRED_FILES[@]}"; do
+            if [ ! -f "$file" ]; then
+              MISSING_FILES="$MISSING_FILES\n- $file"
+            fi
+          done
+          
+          if [ -n "$MISSING_FILES" ]; then
+            echo "missing_files<<EOF" >> $GITHUB_OUTPUT
+            echo -e "$MISSING_FILES" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+            echo "artifacts_valid=false" >> $GITHUB_OUTPUT
+          else
+            echo "artifacts_valid=true" >> $GITHUB_OUTPUT
+          fi
+          
+      - name: Post validation results
+        if: steps.artifacts.outputs.artifacts_valid == 'false'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const comment = `### ❌ Phase Transition Blocked
+            
+            Cannot advance from **${{ steps.issue.outputs.current_phase }}** to **${{ steps.validate.outputs.target_phase }}** phase.
+            
+            **Missing Required Artifacts:**
+            ${{ steps.artifacts.outputs.missing_files }}
+            
+            Please ensure all artifacts are created before advancing phases.`;
+            
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: ${{ steps.parse.outputs.issue_number }},
+              body: comment
+            });
+            
+      - name: Transition to next phase
+        if: steps.artifacts.outputs.artifacts_valid == 'true'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const currentPhase = '${{ steps.issue.outputs.current_phase }}';
+            const targetPhase = '${{ steps.validate.outputs.target_phase }}';
+            const issueNumber = ${{ steps.parse.outputs.issue_number }};
+            
+            // Remove current phase label
+            await github.rest.issues.removeLabel({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+              name: `phase:${currentPhase}`
+            }).catch(() => {});
+            
+            // Add new phase label
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+              labels: [`phase:${targetPhase}`]
+            });
+            
+            // Update other labels
+            if (targetPhase === 'evolution') {
+              // Remove active label, add monitoring
+              await github.rest.issues.removeLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                name: 'hdd:active'
+              }).catch(() => {});
+              
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                labels: ['monitoring', 'in-production']
+              });
+            }
+            
+            // Post transition summary
+            const comment = `### ✅ Phase Transition Complete
+            
+            Successfully advanced from **${currentPhase}** to **${targetPhase}** phase.
+            
+            **Next Steps:**
+            ${targetPhase === 'prototype' ? '1. Create multiple prototype approaches\n2. Build prototypes rapidly (3-5 days)\n3. Test and compare prototypes\n4. Select best approach' : ''}
+            ${targetPhase === 'validation' ? '1. Execute validation tests\n2. Measure against success metrics\n3. Collect user feedback\n4. Make Go/No-Go decision' : ''}
+            ${targetPhase === 'evolution' ? '1. Deploy to production\n2. Set up monitoring\n3. Track metrics over time\n4. Run optimization experiments' : ''}
+            
+            ${targetPhase !== 'evolution' ? `Use \`/advance-phase\` when ready to move to the next phase.` : 'This feature is now in production monitoring mode.'}`;
+            
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+              body: comment
+            });
+            
+      - name: Create next phase issue (if needed)
+        if: |
+          steps.artifacts.outputs.artifacts_valid == 'true' && 
+          steps.validate.outputs.target_phase != 'evolution'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const targetPhase = '${{ steps.validate.outputs.target_phase }}';
+            const templates = {
+              prototype: '.github/ISSUE_TEMPLATE/prototype-sprint.yml',
+              validation: '.github/ISSUE_TEMPLATE/validation-phase.yml',
+              evolution: '.github/ISSUE_TEMPLATE/evolution-tracking.yml'
+            };
+            
+            // Note: In production, you would parse the template and create the issue
+            // This is a placeholder for the actual implementation
+            console.log(`Would create ${targetPhase} issue using template: ${templates[targetPhase]}`);

@@ -1,0 +1,138 @@
+name: "HDD: Hypothesis Discovery"
+description: Start a new feature using Hypothesis-Driven Development
+title: "[HDD-Discovery] "
+labels: ["phase:hypothesis", "hdd:active", "swarm-ready"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🔬 Hypothesis-Driven Development - Discovery Phase
+        
+        This template helps you formulate a clear hypothesis for your feature idea.
+        The hypothesis should be specific, measurable, and testable.
+        
+  - type: textarea
+    id: hypothesis
+    attributes:
+      label: Hypothesis Statement
+      description: State your hypothesis in the format "I believe that [feature] will [outcome] as measured by [metric]"
+      placeholder: |
+        I believe that implementing [specific feature/change]
+        will result in [expected outcome/benefit]
+        as measured by [specific metric(s)]
+        
+        Example: "I believe that adding a dark mode toggle will improve user satisfaction 
+        as measured by a 20% reduction in eye strain complaints and 15% increase in session duration"
+    validations:
+      required: true
+      
+  - type: textarea
+    id: problem_context
+    attributes:
+      label: Problem Context
+      description: What problem are you trying to solve? Who is affected?
+      placeholder: |
+        - Current situation:
+        - Pain points:
+        - Affected users:
+        - Business impact:
+    validations:
+      required: true
+      
+  - type: textarea
+    id: assumptions
+    attributes:
+      label: Key Assumptions
+      description: List assumptions that must be true for your hypothesis to succeed
+      value: |
+        - [ ] Assumption 1: 
+        - [ ] Assumption 2: 
+        - [ ] Assumption 3: 
+        - [ ] Technical feasibility: 
+        - [ ] User willingness: 
+    validations:
+      required: true
+      
+  - type: textarea
+    id: success_metrics
+    attributes:
+      label: Success Metrics
+      description: Define specific, measurable success criteria
+      placeholder: |
+        Primary Metrics:
+        - Metric 1: [baseline] → [target] (e.g., Load time: 3s → 1.5s)
+        - Metric 2: [baseline] → [target]
+        
+        Secondary Metrics:
+        - Metric 3: [what to measure]
+        - Metric 4: [what to measure]
+      value: |
+        Primary Metrics:
+        - 
+        - 
+        
+        Secondary Metrics:
+        - 
+        - 
+    validations:
+      required: true
+      
+  - type: dropdown
+    id: risk_level
+    attributes:
+      label: Risk Assessment
+      description: What's the overall risk level of this hypothesis?
+      options:
+        - Low (Well-understood domain, minimal dependencies)
+        - Medium (Some unknowns, moderate complexity)
+        - High (Many unknowns, significant complexity)
+        - Critical (Core architecture impact, high uncertainty)
+    validations:
+      required: true
+      
+  - type: textarea
+    id: discovery_approach
+    attributes:
+      label: Discovery Approach
+      description: How will you validate assumptions before building?
+      placeholder: |
+        - Research methods:
+        - User interviews needed:
+        - Technical spikes required:
+        - Competitive analysis:
+      value: |
+        - [ ] Literature/market research
+        - [ ] User interviews (target: X users)
+        - [ ] Technical feasibility spike
+        - [ ] Competitive analysis
+        - [ ] Prototype sketches
+        
+  - type: textarea
+    id: ai_agent_requirements
+    attributes:
+      label: AI Agent Requirements
+      description: Specify which AI agents should be involved in discovery
+      value: |
+        Required Agents:
+        - [ ] Researcher - Market analysis and similar solutions
+        - [ ] Analyst - Risk assessment and feasibility study
+        - [ ] Architect - Technical approach options
+        
+        Agent Focus Areas:
+        - Research: 
+        - Analysis: 
+        - Architecture: 
+        
+  - type: input
+    id: timeline
+    attributes:
+      label: Discovery Timeline
+      description: Expected duration for discovery phase
+      placeholder: "1-2 days"
+      value: "1-2 days"
+    validations:
+      required: true
+
+---
+assignees: []
+projects: []

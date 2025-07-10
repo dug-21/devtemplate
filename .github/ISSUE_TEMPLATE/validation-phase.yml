@@ -1,0 +1,188 @@
+name: "HDD: Validation Phase"
+description: Validate your prototype against the hypothesis success criteria
+title: "[HDD-Validation] "
+labels: ["phase:validation", "hdd:active", "swarm-ready"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## ✅ Hypothesis-Driven Development - Validation Phase
+        
+        This phase validates whether your chosen prototype meets the success
+        criteria defined in your original hypothesis.
+        
+  - type: input
+    id: prototype_issue
+    attributes:
+      label: Prototype Sprint Issue Reference
+      description: Link to the prototype sprint issue
+      placeholder: "#456"
+    validations:
+      required: true
+      
+  - type: input
+    id: selected_prototype
+    attributes:
+      label: Selected Prototype
+      description: Which prototype approach was selected?
+      placeholder: "Approach B: Event-Driven Architecture"
+    validations:
+      required: true
+      
+  - type: textarea
+    id: hypothesis_metrics_recap
+    attributes:
+      label: Success Metrics Recap
+      description: Restate the success metrics from the hypothesis
+      placeholder: |
+        Primary Metrics:
+        - Load time: 3s → 1.5s
+        - User satisfaction: 7/10 → 8.5/10
+        
+        Secondary Metrics:
+        - Error rate: <1%
+        - Code coverage: >85%
+    validations:
+      required: true
+      
+  - type: textarea
+    id: validation_tests
+    attributes:
+      label: Validation Test Plan
+      description: Comprehensive test plan to validate the hypothesis
+      value: |
+        ## Performance Validation
+        - [ ] Load time measurement (target: X seconds)
+        - [ ] Memory usage profiling (target: < X MB)
+        - [ ] CPU utilization (target: < X%)
+        - [ ] Concurrent user testing (target: X users)
+        
+        ## Functionality Validation
+        - [ ] Feature completeness checklist
+        - [ ] Edge case handling
+        - [ ] Error recovery testing
+        - [ ] Integration testing
+        
+        ## User Experience Validation
+        - [ ] User acceptance testing (X participants)
+        - [ ] Usability metrics collection
+        - [ ] A/B testing setup (if applicable)
+        - [ ] Feedback survey deployment
+        
+        ## Technical Validation
+        - [ ] Security assessment
+        - [ ] Code quality metrics
+        - [ ] Documentation completeness
+        - [ ] Deployment readiness
+    validations:
+      required: true
+      
+  - type: textarea
+    id: validation_results
+    attributes:
+      label: Validation Results
+      description: Document actual results vs. targets
+      value: |
+        ## Primary Metrics Results
+        | Metric | Target | Actual | Status |
+        |--------|--------|--------|--------|
+        | Metric 1 | X | Y | ✅/❌ |
+        | Metric 2 | X | Y | ✅/❌ |
+        
+        ## Secondary Metrics Results
+        | Metric | Target | Actual | Status |
+        |--------|--------|--------|--------|
+        | Metric 3 | X | Y | ✅/❌ |
+        | Metric 4 | X | Y | ✅/❌ |
+        
+        ## Qualitative Results
+        - User Feedback Summary:
+        - Unexpected Findings:
+        - Technical Observations:
+    validations:
+      required: false
+      
+  - type: textarea
+    id: hypothesis_outcome
+    attributes:
+      label: Hypothesis Validation Outcome
+      description: Was the hypothesis validated or invalidated?
+      placeholder: |
+        Outcome: VALIDATED / PARTIALLY VALIDATED / INVALIDATED
+        
+        Summary:
+        - What worked:
+        - What didn't work:
+        - Surprising discoveries:
+        
+        Key Learnings:
+        1. 
+        2. 
+        3. 
+    validations:
+      required: false
+      
+  - type: dropdown
+    id: go_no_go_decision
+    attributes:
+      label: Go/No-Go Decision
+      description: Based on validation, should we proceed to production?
+      options:
+        - "GO - All criteria met, proceed to evolution"
+        - "CONDITIONAL GO - Minor adjustments needed"
+        - "PIVOT - Major changes required"
+        - "NO GO - Hypothesis invalidated"
+        - "PENDING - More validation needed"
+      default: 4
+    validations:
+      required: true
+      
+  - type: textarea
+    id: next_steps
+    attributes:
+      label: Next Steps
+      description: What happens next based on the validation outcome?
+      value: |
+        If GO:
+        - [ ] Create evolution tracking issue
+        - [ ] Deploy to production
+        - [ ] Set up monitoring
+        
+        If CONDITIONAL GO:
+        - [ ] Address identified issues
+        - [ ] Re-validate specific metrics
+        - [ ] Update documentation
+        
+        If PIVOT:
+        - [ ] Document learnings
+        - [ ] Formulate new hypothesis
+        - [ ] Return to discovery phase
+        
+        If NO GO:
+        - [ ] Document why hypothesis failed
+        - [ ] Archive prototype code
+        - [ ] Share learnings with team
+    validations:
+      required: true
+      
+  - type: textarea
+    id: ai_agent_validation
+    attributes:
+      label: AI Agent Validation Tasks
+      description: Specify AI agent roles in validation
+      value: |
+        Required Agents:
+        - [ ] QA Agent - Comprehensive testing
+        - [ ] Analyst Agent - Results interpretation
+        - [ ] Documentation Agent - Findings summary
+        - [ ] Monitor Agent - Performance tracking
+        
+        Agent Deliverables:
+        - Test report:
+        - Analysis document:
+        - Performance metrics:
+        - Recommendations:
+
+---
+assignees: []
+projects: []

@@ -1,0 +1,169 @@
+name: "HDD: Prototype Sprint"
+description: Rapidly prototype multiple approaches to test your hypothesis
+title: "[HDD-Prototype] "
+labels: ["phase:prototype", "hdd:active", "swarm-ready"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🚀 Hypothesis-Driven Development - Prototype Sprint Phase
+        
+        This phase focuses on rapidly building multiple prototype approaches
+        to test the core assumptions of your hypothesis.
+        
+  - type: input
+    id: hypothesis_issue
+    attributes:
+      label: Discovery Issue Reference
+      description: Link to the hypothesis discovery issue
+      placeholder: "#123"
+    validations:
+      required: true
+      
+  - type: textarea
+    id: hypothesis_recap
+    attributes:
+      label: Hypothesis Recap
+      description: Briefly restate the hypothesis being tested
+      placeholder: "We believe that [feature] will [outcome] as measured by [metric]"
+    validations:
+      required: true
+      
+  - type: textarea
+    id: prototype_approaches
+    attributes:
+      label: Prototype Approaches
+      description: Describe 3+ different approaches to test
+      value: |
+        ## Approach A: [Name]
+        **Description**: 
+        **Key Features**: 
+        **Pros**: 
+        **Cons**: 
+        **Time Estimate**: 
+        
+        ## Approach B: [Name]
+        **Description**: 
+        **Key Features**: 
+        **Pros**: 
+        **Cons**: 
+        **Time Estimate**: 
+        
+        ## Approach C: [Name]
+        **Description**: 
+        **Key Features**: 
+        **Pros**: 
+        **Cons**: 
+        **Time Estimate**: 
+    validations:
+      required: true
+      
+  - type: textarea
+    id: evaluation_criteria
+    attributes:
+      label: Prototype Evaluation Criteria
+      description: How will you compare the prototypes?
+      value: |
+        Technical Criteria:
+        - [ ] Performance (response time, resource usage)
+        - [ ] Scalability potential
+        - [ ] Implementation complexity
+        - [ ] Maintenance burden
+        
+        User Experience Criteria:
+        - [ ] Ease of use
+        - [ ] Learning curve
+        - [ ] Feature completeness
+        - [ ] Visual appeal
+        
+        Business Criteria:
+        - [ ] Development time
+        - [ ] Cost implications
+        - [ ] Risk factors
+        - [ ] Strategic alignment
+    validations:
+      required: true
+      
+  - type: textarea
+    id: testing_plan
+    attributes:
+      label: Prototype Testing Plan
+      description: How will you test each prototype?
+      placeholder: |
+        - Test scenarios:
+        - Performance benchmarks:
+        - User feedback collection:
+        - Data to collect:
+      value: |
+        Test Scenarios:
+        1. 
+        2. 
+        3. 
+        
+        Performance Tests:
+        - 
+        - 
+        
+        User Tests:
+        - 
+        - 
+    validations:
+      required: true
+      
+  - type: dropdown
+    id: sprint_duration
+    attributes:
+      label: Sprint Duration
+      description: How long for the prototype sprint?
+      options:
+        - 3 days
+        - 4 days
+        - 5 days
+        - 1 week
+      default: 0
+    validations:
+      required: true
+      
+  - type: textarea
+    id: ai_agent_assignments
+    attributes:
+      label: AI Agent Assignments
+      description: Which agents will build which prototypes?
+      value: |
+        Prototype A:
+        - [ ] Builder Agent - Core implementation
+        - [ ] Tester Agent - Test scenarios
+        
+        Prototype B:
+        - [ ] Builder Agent - Core implementation
+        - [ ] Optimizer Agent - Performance tuning
+        
+        Prototype C:
+        - [ ] Builder Agent - Core implementation
+        - [ ] Architect Agent - Design patterns
+        
+        All Prototypes:
+        - [ ] Coordinator Agent - Progress tracking
+        - [ ] Analyst Agent - Comparison analysis
+        
+  - type: textarea
+    id: decision_framework
+    attributes:
+      label: Decision Framework
+      description: How will you decide which prototype to advance?
+      value: |
+        Must-Have Criteria (all required):
+        - [ ] Meets primary success metrics
+        - [ ] Technically feasible
+        - [ ] Acceptable performance
+        
+        Nice-to-Have Criteria (weighted scoring):
+        - [ ] Exceeds success metrics (weight: 30%)
+        - [ ] Superior user experience (weight: 25%)
+        - [ ] Lower implementation cost (weight: 20%)
+        - [ ] Better maintainability (weight: 15%)
+        - [ ] Future extensibility (weight: 10%)
+
+---
+assignees: []
+projects: []

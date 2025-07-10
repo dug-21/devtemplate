@@ -1,0 +1,337 @@
+name: HDD Validation Checks
+description: Automated testing and validation for hypothesis metrics
+
+on:
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: 'Issue number for validation phase'
+        required: true
+  schedule:
+    # Run validation checks daily for all validation phase issues
+    - cron: '0 9 * * *'
+  issue_comment:
+    types: [created]
+
+jobs:
+  run-validation:
+    if: |
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '/run-validation')) ||
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        
+      - name: Setup validation environment
+        run: |
+          # Install required tools
+          npm install -g lighthouse
+          pip install pytest pytest-benchmark locust
+          
+      - name: Identify validation issues
+        id: issues
+        uses: actions/github-script@v6
+        with:
+          script: |
+            let issues = [];
+            
+            if (context.eventName === 'workflow_dispatch') {
+              issues.push(context.payload.inputs.issue_number);
+            } else if (context.eventName === 'issue_comment') {
+              issues.push(context.payload.issue.number);
+            } else {
+              // Schedule - find all validation phase issues
+              const validationIssues = await github.rest.issues.listForRepo({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                labels: 'phase:validation,hdd:active',
+                state: 'open'
+              });
+              issues = validationIssues.data.map(i => i.number);
+            }
+            
+            core.setOutput('issues', issues.join(','));
+            return issues;
+            
+      - name: Run validation tests
+        id: validate
+        run: |
+          # Parse issue numbers
+          IFS=',' read -ra ISSUES <<< "${{ steps.issues.outputs.issues }}"
+          
+          for issue in "${ISSUES[@]}"; do
+            echo "Running validation for issue #$issue"
+            
+            ISSUE_DIR="issues/issue-$issue"
+            RESULTS_DIR="$ISSUE_DIR/validation/results-$(date +%Y%m%d)"
+            mkdir -p "$RESULTS_DIR"
+            
+            # Read validation configuration
+            if [ -f "$ISSUE_DIR/validation/config.json" ]; then
+              CONFIG=$(cat "$ISSUE_DIR/validation/config.json")
+            else
+              echo "No validation config found for issue #$issue"
+              continue
+            fi
+            
+            # Run performance tests
+            if [ -f "$ISSUE_DIR/validation/performance-tests.js" ]; then
+              echo "Running performance tests..."
+              node "$ISSUE_DIR/validation/performance-tests.js" > "$RESULTS_DIR/performance.json"
+            fi
+            
+            # Run load tests
+            if [ -f "$ISSUE_DIR/validation/locustfile.py" ]; then
+              echo "Running load tests..."
+              locust -f "$ISSUE_DIR/validation/locustfile.py" \
+                --headless \
+                --users 100 \
+                --spawn-rate 10 \
+                --run-time 60s \
+                --html "$RESULTS_DIR/load-test.html" \
+                --csv "$RESULTS_DIR/load-test"
+            fi
+            
+            # Run functional tests
+            if [ -f "$ISSUE_DIR/validation/test_functional.py" ]; then
+              echo "Running functional tests..."
+              pytest "$ISSUE_DIR/validation/test_functional.py" \
+                --json-report \
+                --json-report-file="$RESULTS_DIR/functional-tests.json"
+            fi
+            
+            # Run lighthouse tests (if URL provided)
+            URL=$(jq -r '.url // empty' "$ISSUE_DIR/validation/config.json" 2>/dev/null)
+            if [ -n "$URL" ]; then
+              echo "Running Lighthouse audit..."
+              lighthouse "$URL" \
+                --output json \
+                --output-path "$RESULTS_DIR/lighthouse.json" \
+                --only-categories=performance,accessibility,best-practices
+            fi
+            
+            # Generate results summary
+            cat > "$RESULTS_DIR/summary.json" << EOF
+          {
+            "issue": $issue,
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "tests_run": {
+              "performance": $([ -f "$RESULTS_DIR/performance.json" ] && echo "true" || echo "false"),
+              "load": $([ -f "$RESULTS_DIR/load-test.csv" ] && echo "true" || echo "false"),
+              "functional": $([ -f "$RESULTS_DIR/functional-tests.json" ] && echo "true" || echo "false"),
+              "lighthouse": $([ -f "$RESULTS_DIR/lighthouse.json" ] && echo "true" || echo "false")
+            }
+          }
+          EOF
+          done
+          
+      - name: Analyze validation results
+        id: analyze
+        run: |
+          # Create analysis script
+          cat > analyze_results.py << 'EOF'
+          import json
+          import sys
+          import os
+          from pathlib import Path
+          
+          def analyze_issue_results(issue_number):
+              issue_dir = Path(f"issues/issue-{issue_number}")
+              latest_results = max(issue_dir.glob("validation/results-*"), default=None)
+              
+              if not latest_results:
+                  return None
+                  
+              # Read hypothesis metrics
+              metrics_file = issue_dir / "hypothesis" / "metrics.json"
+              if metrics_file.exists():
+                  with open(metrics_file) as f:
+                      target_metrics = json.load(f)
+              else:
+                  target_metrics = {}
+              
+              # Read actual results
+              results = {}
+              
+              # Performance results
+              perf_file = latest_results / "performance.json"
+              if perf_file.exists():
+                  with open(perf_file) as f:
+                      results['performance'] = json.load(f)
+              
+              # Load test results
+              load_file = latest_results / "load-test_stats.csv"
+              if load_file.exists():
+                  # Parse CSV for key metrics
+                  import csv
+                  with open(load_file) as f:
+                      reader = csv.DictReader(f)
+                      load_stats = list(reader)
+                      if load_stats:
+                          results['load'] = {
+                              'avg_response_time': float(load_stats[-1].get('Average Response Time', 0)),
+                              'failure_rate': float(load_stats[-1].get('Failure Count', 0)) / 
+                                             float(load_stats[-1].get('Request Count', 1)) * 100
+                          }
+              
+              # Functional test results
+              func_file = latest_results / "functional-tests.json"
+              if func_file.exists():
+                  with open(func_file) as f:
+                      func_data = json.load(f)
+                      results['functional'] = {
+                          'passed': func_data.get('summary', {}).get('passed', 0),
+                          'failed': func_data.get('summary', {}).get('failed', 0),
+                          'total': func_data.get('summary', {}).get('total', 0)
+                      }
+              
+              # Lighthouse results
+              lh_file = latest_results / "lighthouse.json"
+              if lh_file.exists():
+                  with open(lh_file) as f:
+                      lh_data = json.load(f)
+                      results['lighthouse'] = {
+                          'performance': lh_data.get('categories', {}).get('performance', {}).get('score', 0) * 100,
+                          'accessibility': lh_data.get('categories', {}).get('accessibility', {}).get('score', 0) * 100,
+                          'best_practices': lh_data.get('categories', {}).get('best-practices', {}).get('score', 0) * 100
+                      }
+              
+              # Compare against targets
+              validation_passed = True
+              comparisons = []
+              
+              for metric, target in target_metrics.items():
+                  if metric in results:
+                      actual = results[metric]
+                      if isinstance(target, dict) and 'min' in target:
+                          passed = actual >= target['min']
+                      elif isinstance(target, dict) and 'max' in target:
+                          passed = actual <= target['max']
+                      else:
+                          passed = actual == target
+                      
+                      comparisons.append({
+                          'metric': metric,
+                          'target': target,
+                          'actual': actual,
+                          'passed': passed
+                      })
+                      
+                      if not passed:
+                          validation_passed = False
+              
+              return {
+                  'issue': issue_number,
+                  'validation_passed': validation_passed,
+                  'results': results,
+                  'comparisons': comparisons
+              }
+          
+          # Analyze all issues
+          issues = sys.argv[1].split(',')
+          all_results = []
+          
+          for issue in issues:
+              if issue:
+                  result = analyze_issue_results(issue)
+                  if result:
+                      all_results.append(result)
+          
+          # Save analysis
+          with open('validation_analysis.json', 'w') as f:
+              json.dump(all_results, f, indent=2)
+          EOF
+          
+          python analyze_results.py "${{ steps.issues.outputs.issues }}"
+          
+      - name: Post validation results
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const analysis = JSON.parse(fs.readFileSync('validation_analysis.json', 'utf8'));
+            
+            for (const result of analysis) {
+              const { issue, validation_passed, results, comparisons } = result;
+              
+              // Build results table
+              let comparisonTable = '| Metric | Target | Actual | Status |\n|--------|--------|--------|--------|\n';
+              
+              for (const comp of comparisons) {
+                const status = comp.passed ? '✅' : '❌';
+                comparisonTable += `| ${comp.metric} | ${JSON.stringify(comp.target)} | ${JSON.stringify(comp.actual)} | ${status} |\n`;
+              }
+              
+              // Build detailed results
+              let detailedResults = '';
+              
+              if (results.performance) {
+                detailedResults += `\n**Performance Tests:**\n\`\`\`json\n${JSON.stringify(results.performance, null, 2)}\n\`\`\`\n`;
+              }
+              
+              if (results.load) {
+                detailedResults += `\n**Load Tests:**\n- Average Response Time: ${results.load.avg_response_time}ms\n- Failure Rate: ${results.load.failure_rate.toFixed(2)}%\n`;
+              }
+              
+              if (results.functional) {
+                const { passed, failed, total } = results.functional;
+                detailedResults += `\n**Functional Tests:**\n- Passed: ${passed}/${total}\n- Failed: ${failed}\n- Success Rate: ${((passed/total)*100).toFixed(1)}%\n`;
+              }
+              
+              if (results.lighthouse) {
+                detailedResults += `\n**Lighthouse Scores:**\n- Performance: ${results.lighthouse.performance}/100\n- Accessibility: ${results.lighthouse.accessibility}/100\n- Best Practices: ${results.lighthouse.best_practices}/100\n`;
+              }
+              
+              const comment = `## 📊 Validation Results
+              
+              **Overall Status:** ${validation_passed ? '✅ PASSED' : '❌ FAILED'}
+              
+              ### Metrics Comparison
+              ${comparisonTable}
+              
+              ### Detailed Results
+              ${detailedResults}
+              
+              ### Recommendation
+              ${validation_passed 
+                ? 'All validation criteria have been met. The hypothesis is **VALIDATED** and ready to proceed to the evolution phase.'
+                : 'Some validation criteria were not met. Please review the results and determine if the hypothesis needs adjustment or if the implementation needs improvement.'}
+              
+              ---
+              *Automated validation run at ${new Date().toISOString()}*`;
+              
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue,
+                body: comment
+              });
+            }
+            
+      - name: Update issue labels
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const analysis = JSON.parse(fs.readFileSync('validation_analysis.json', 'utf8'));
+            
+            for (const result of analysis) {
+              if (result.validation_passed) {
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: result.issue,
+                  labels: ['validation:passed']
+                });
+              } else {
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: result.issue,
+                  labels: ['validation:failed']
+                });
+              }
+            }

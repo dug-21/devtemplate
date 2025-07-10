@@ -1,0 +1,494 @@
+name: HDD Learning Capture
+description: Automatically capture and document learnings from completed HDD cycles
+
+on:
+  issues:
+    types: [closed]
+  schedule:
+    # Weekly learning review
+    - cron: '0 10 * * 5'
+  workflow_dispatch:
+    inputs:
+      issue_numbers:
+        description: 'Comma-separated issue numbers to analyze'
+        required: false
+
+jobs:
+  capture-learnings:
+    if: |
+      (github.event_name == 'issues' && contains(github.event.issue.labels.*.name, 'hdd:active')) ||
+      github.event_name == 'schedule' ||
+      github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        
+      - name: Setup environment
+        run: |
+          pip install openai anthropic transformers pandas nltk
+          npm install natural sentiment
+          
+      - name: Identify issues to analyze
+        id: issues
+        uses: actions/github-script@v6
+        with:
+          script: |
+            let issuesToAnalyze = [];
+            
+            if (context.eventName === 'issues') {
+              // Single issue that was just closed
+              issuesToAnalyze.push(context.payload.issue.number);
+            } else if (context.eventName === 'workflow_dispatch' && context.payload.inputs.issue_numbers) {
+              // Manual run with specific issues
+              issuesToAnalyze = context.payload.inputs.issue_numbers.split(',').map(n => parseInt(n.trim()));
+            } else {
+              // Schedule run - find recently closed HDD issues
+              const oneWeekAgo = new Date();
+              oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+              
+              const { data: recentlyClosed } = await github.rest.issues.listForRepo({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                labels: 'hdd:active',
+                state: 'closed',
+                since: oneWeekAgo.toISOString(),
+                per_page: 100
+              });
+              
+              issuesToAnalyze = recentlyClosed.map(i => i.number);
+            }
+            
+            core.setOutput('issues', issuesToAnalyze.join(','));
+            return issuesToAnalyze;
+            
+      - name: Extract learnings from issues
+        id: extract
+        run: |
+          cat > extract_learnings.py << 'EOF'
+          import json
+          import sys
+          import re
+          from pathlib import Path
+          from datetime import datetime
+          
+          def extract_issue_learnings(issue_number):
+              issue_dir = Path(f"issues/issue-{issue_number}")
+              learnings = {
+                  'issue_number': issue_number,
+                  'timestamp': datetime.now().isoformat(),
+                  'hypothesis': {},
+                  'prototypes': {},
+                  'validation': {},
+                  'evolution': {},
+                  'key_insights': [],
+                  'patterns': [],
+                  'recommendations': []
+              }
+              
+              # Extract hypothesis learnings
+              hypothesis_file = issue_dir / 'hypothesis' / 'statement.md'
+              if hypothesis_file.exists():
+                  content = hypothesis_file.read_text()
+                  learnings['hypothesis']['original'] = content
+                  
+                  # Look for assumptions that proved true/false
+                  assumptions_file = issue_dir / 'hypothesis' / 'assumptions.md'
+                  if assumptions_file.exists():
+                      assumptions = assumptions_file.read_text()
+                      # Parse validated/invalidated assumptions
+                      validated = re.findall(r'\[x\] (.+)', assumptions)
+                      invalidated = re.findall(r'\[~\] (.+)', assumptions)
+                      learnings['hypothesis']['validated_assumptions'] = validated
+                      learnings['hypothesis']['invalidated_assumptions'] = invalidated
+              
+              # Extract prototype learnings
+              prototypes_dir = issue_dir / 'prototypes'
+              if prototypes_dir.exists():
+                  comparison_file = prototypes_dir / 'comparison.md'
+                  if comparison_file.exists():
+                      content = comparison_file.read_text()
+                      # Extract winner and why
+                      winner_match = re.search(r'Winner: (.+)', content)
+                      if winner_match:
+                          learnings['prototypes']['winner'] = winner_match.group(1)
+                      
+                      # Extract pros/cons
+                      learnings['prototypes']['insights'] = re.findall(r'Key Insight: (.+)', content)
+              
+              # Extract validation learnings
+              validation_dir = issue_dir / 'validation'
+              if validation_dir.exists():
+                  results_file = validation_dir / 'decision-record.md'
+                  if results_file.exists():
+                      content = results_file.read_text()
+                      # Extract outcome
+                      outcome_match = re.search(r'Outcome: (.+)', content)
+                      if outcome_match:
+                          learnings['validation']['outcome'] = outcome_match.group(1)
+                      
+                      # Extract surprising findings
+                      surprises = re.findall(r'Surprising: (.+)', content)
+                      learnings['validation']['surprises'] = surprises
+              
+              # Extract evolution learnings (if any)
+              evolution_dir = issue_dir / 'evolution'
+              if evolution_dir.exists():
+                  metrics_file = evolution_dir / 'metrics-trends.json'
+                  if metrics_file.exists():
+                      with open(metrics_file) as f:
+                          metrics = json.load(f)
+                      learnings['evolution']['performance_trends'] = metrics.get('trends', {})
+                      learnings['evolution']['optimizations'] = metrics.get('successful_optimizations', [])
+              
+              # Synthesize key insights
+              if learnings['hypothesis'].get('invalidated_assumptions'):
+                  learnings['key_insights'].append(
+                      f"Assumption mismatch: {len(learnings['hypothesis']['invalidated_assumptions'])} assumptions proved false"
+                  )
+              
+              if learnings['prototypes'].get('winner'):
+                  learnings['key_insights'].append(
+                      f"Winning approach: {learnings['prototypes']['winner']}"
+                  )
+              
+              if learnings['validation'].get('surprises'):
+                  learnings['key_insights'].append(
+                      f"Unexpected findings: {', '.join(learnings['validation']['surprises'][:3])}"
+                  )
+              
+              return learnings
+          
+          # Process all issues
+          issue_numbers = sys.argv[1].split(',')
+          all_learnings = []
+          
+          for issue_num in issue_numbers:
+              if issue_num:
+                  try:
+                      learning = extract_issue_learnings(int(issue_num))
+                      all_learnings.append(learning)
+                  except Exception as e:
+                      print(f"Error processing issue {issue_num}: {e}")
+          
+          # Save individual learnings
+          with open('extracted_learnings.json', 'w') as f:
+              json.dump(all_learnings, f, indent=2)
+          
+          # Analyze patterns across issues
+          patterns = analyze_patterns(all_learnings)
+          
+          with open('learning_patterns.json', 'w') as f:
+              json.dump(patterns, f, indent=2)
+          
+          def analyze_patterns(learnings):
+              patterns = {
+                  'common_assumption_failures': [],
+                  'successful_approaches': [],
+                  'validation_insights': [],
+                  'optimization_patterns': []
+              }
+              
+              # Aggregate assumption failures
+              all_invalid_assumptions = []
+              for l in learnings:
+                  all_invalid_assumptions.extend(l['hypothesis'].get('invalidated_assumptions', []))
+              
+              # Find common themes
+              assumption_counts = {}
+              for assumption in all_invalid_assumptions:
+                  # Simple word frequency
+                  words = assumption.lower().split()
+                  for word in words:
+                      if len(word) > 4:  # Skip short words
+                          assumption_counts[word] = assumption_counts.get(word, 0) + 1
+              
+              patterns['common_assumption_failures'] = sorted(
+                  assumption_counts.items(), 
+                  key=lambda x: x[1], 
+                  reverse=True
+              )[:10]
+              
+              # Successful prototype patterns
+              winners = [l['prototypes'].get('winner', '') for l in learnings if l['prototypes'].get('winner')]
+              patterns['successful_approaches'] = list(set(winners))
+              
+              # Validation patterns
+              outcomes = [l['validation'].get('outcome', '') for l in learnings if l['validation'].get('outcome')]
+              patterns['validation_outcomes'] = {
+                  'validated': outcomes.count('VALIDATED'),
+                  'invalidated': outcomes.count('INVALIDATED'),
+                  'pivoted': outcomes.count('PIVOTED')
+              }
+              
+              return patterns
+          
+          EOF
+          
+          python extract_learnings.py "${{ steps.issues.outputs.issues }}"
+          
+      - name: Generate learning report
+        id: report
+        run: |
+          cat > generate_learning_report.py << 'EOF'
+          import json
+          from datetime import datetime
+          
+          # Load data
+          with open('extracted_learnings.json') as f:
+              learnings = json.load(f)
+          
+          with open('learning_patterns.json') as f:
+              patterns = json.load(f)
+          
+          # Generate markdown report
+          report = f"""# HDD Learning Report
+          
+          Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+          
+          ## Executive Summary
+          
+          Analyzed {len(learnings)} HDD cycles to extract insights and patterns.
+          
+          ### Key Statistics
+          - Validation Rate: {patterns['validation_outcomes'].get('validated', 0) / max(sum(patterns['validation_outcomes'].values()), 1) * 100:.1f}%
+          - Common Pivot Rate: {patterns['validation_outcomes'].get('pivoted', 0) / max(sum(patterns['validation_outcomes'].values()), 1) * 100:.1f}%
+          
+          ## Individual Cycle Learnings
+          
+          """
+          
+          for learning in learnings:
+              report += f"""### Issue #{learning['issue_number']}
+              
+              """
+              
+              if learning['key_insights']:
+                  report += "**Key Insights:**\n"
+                  for insight in learning['key_insights']:
+                      report += f"- {insight}\n"
+                  report += "\n"
+              
+              if learning['hypothesis'].get('invalidated_assumptions'):
+                  report += "**Failed Assumptions:**\n"
+                  for assumption in learning['hypothesis']['invalidated_assumptions'][:3]:
+                      report += f"- {assumption}\n"
+                  report += "\n"
+              
+              if learning['validation'].get('surprises'):
+                  report += "**Surprising Discoveries:**\n"
+                  for surprise in learning['validation']['surprises'][:3]:
+                      report += f"- {surprise}\n"
+                  report += "\n"
+              
+              report += "---\n\n"
+          
+          report += """## Cross-Cutting Patterns
+          
+          ### Common Assumption Failures
+          
+          These themes appeared frequently in failed assumptions:
+          
+          | Theme | Frequency |
+          |-------|-----------|
+          """
+          
+          for word, count in patterns['common_assumption_failures'][:10]:
+              report += f"| {word} | {count} |\n"
+          
+          report += f"""
+          
+          ### Successful Approaches
+          
+          These prototype approaches have proven successful:
+          
+          """
+          
+          for approach in patterns['successful_approaches']:
+              report += f"- {approach}\n"
+          
+          report += """
+          
+          ## Recommendations
+          
+          Based on the patterns identified:
+          
+          1. **Assumption Validation**: Pay special attention to assumptions involving: """ + \
+          ', '.join([word for word, _ in patterns['common_assumption_failures'][:5]]) + """
+          
+          2. **Prototype Strategy**: Consider starting with approaches similar to: """ + \
+          ', '.join(patterns['successful_approaches'][:3]) + """
+          
+          3. **Validation Focus**: Given the validation rate, ensure thorough testing of core metrics before proceeding.
+          
+          ## Learning Library Updates
+          
+          The following items should be added to the learning library:
+          
+          """
+          
+          # Generate library entries
+          library_entries = []
+          
+          for learning in learnings:
+              if learning['key_insights']:
+                  entry = {
+                      'source': f"Issue #{learning['issue_number']}",
+                      'type': 'insight',
+                      'content': learning['key_insights'][0],
+                      'tags': ['hdd', 'learning'],
+                      'date': learning['timestamp']
+                  }
+                  library_entries.append(entry)
+          
+          with open('learning_library_entries.json', 'w') as f:
+              json.dump(library_entries, f, indent=2)
+          
+          report += f"- {len(library_entries)} new insights to be catalogued\n"
+          
+          # Save report
+          with open('hdd_learning_report.md', 'w') as f:
+              f.write(report)
+          
+          print(f"Generated learning report with {len(learnings)} cycles analyzed")
+          EOF
+          
+          python generate_learning_report.py
+          
+      - name: Update learning library
+        run: |
+          # Initialize learning library if it doesn't exist
+          mkdir -p .github/hdd-learning-library
+          
+          if [ ! -f .github/hdd-learning-library/library.json ]; then
+            echo '{"entries": [], "metadata": {"created": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'", "version": "1.0"}}' > .github/hdd-learning-library/library.json
+          fi
+          
+          # Merge new entries
+          cat > merge_library.py << 'EOF'
+          import json
+          from datetime import datetime
+          
+          # Load existing library
+          with open('.github/hdd-learning-library/library.json') as f:
+              library = json.load(f)
+          
+          # Load new entries
+          with open('learning_library_entries.json') as f:
+              new_entries = json.load(f)
+          
+          # Add new entries with deduplication
+          existing_contents = {entry['content'] for entry in library['entries']}
+          
+          for entry in new_entries:
+              if entry['content'] not in existing_contents:
+                  library['entries'].append(entry)
+          
+          # Update metadata
+          library['metadata']['last_updated'] = datetime.now().isoformat()
+          library['metadata']['total_entries'] = len(library['entries'])
+          
+          # Save updated library
+          with open('.github/hdd-learning-library/library.json', 'w') as f:
+              json.dump(library, f, indent=2)
+          
+          print(f"Library updated: {len(library['entries'])} total entries")
+          EOF
+          
+          python merge_library.py
+          
+          # Copy learning report
+          cp hdd_learning_report.md .github/hdd-learning-library/
+          
+          # Create index
+          cat > .github/hdd-learning-library/README.md << 'EOF'
+          # HDD Learning Library
+          
+          This directory contains accumulated learnings from Hypothesis-Driven Development cycles.
+          
+          ## Contents
+          
+          - `library.json` - Structured learning entries
+          - `hdd_learning_report.md` - Latest learning analysis
+          - `patterns/` - Identified patterns and anti-patterns
+          - `case-studies/` - Detailed case studies of notable cycles
+          
+          ## Quick Access
+          
+          ### Most Recent Insights
+          
+          See [hdd_learning_report.md](./hdd_learning_report.md) for the latest analysis.
+          
+          ### Search the Library
+          
+          Use the GitHub search with `path:.github/hdd-learning-library` to find specific learnings.
+          
+          ### Categories
+          
+          - **Assumptions**: Common assumption failures and validations
+          - **Approaches**: Successful prototype patterns
+          - **Validations**: Testing strategies that work
+          - **Optimizations**: Performance improvement patterns
+          
+          ---
+          
+          *This library is automatically maintained by the HDD Learning Capture workflow*
+          EOF
+          
+      - name: Create learning PR
+        uses: peter-evans/create-pull-request@v5
+        with:
+          title: "📚 Update HDD Learning Library"
+          body: |
+            ## Learning Capture Update
+            
+            This automated PR updates the HDD learning library with insights from recent cycles.
+            
+            ### Cycles Analyzed
+            ${{ steps.issues.outputs.issues }}
+            
+            ### New Insights
+            See the [learning report](./github/hdd-learning-library/hdd_learning_report.md) for details.
+            
+            ### Library Stats
+            - New entries added to the learning library
+            - Patterns identified and documented
+            - Recommendations generated
+            
+            ---
+            *Generated by HDD Learning Capture workflow*
+          branch: hdd-learning-update-${{ github.run_number }}
+          commit-message: "docs: Update HDD learning library with new insights"
+          
+      - name: Post learning summary
+        if: github.event_name == 'issues'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('hdd_learning_report.md', 'utf8');
+            
+            // Extract just the section for this issue
+            const issueNumber = context.payload.issue.number;
+            const issueSection = report.match(new RegExp(`### Issue #${issueNumber}[\\s\\S]*?(?=###|##|$)`))?.[0] || '';
+            
+            if (issueSection) {
+              const comment = `## 📚 Learning Captured
+              
+              Thank you for completing this HDD cycle! Here are the key learnings captured:
+              
+              ${issueSection}
+              
+              These insights have been added to our [HDD Learning Library](https://github.com/${context.repo.owner}/${context.repo.repo}/tree/main/.github/hdd-learning-library) for future reference.
+              
+              ---
+              *Automated learning capture by HDD workflow*`;
+              
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                body: comment
+              });
+            }

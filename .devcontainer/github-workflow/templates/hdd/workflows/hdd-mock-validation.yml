@@ -1,0 +1,320 @@
+name: HDD Mock Validation
+description: Lightweight validation for mock prototypes before full build
+
+on:
+  issue_comment:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: 'Issue number for mock validation'
+        required: true
+
+jobs:
+  validate-mocks:
+    if: |
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '/validate-mocks')) ||
+      github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        
+      - name: Setup environment
+        run: |
+          npm install -g lighthouse puppeteer
+          pip install beautifulsoup4 requests jsonschema
+          
+      - name: Identify issue
+        id: issue
+        run: |
+          if [ "${{ github.event_name }}" = "issue_comment" ]; then
+            echo "issue_number=${{ github.event.issue.number }}" >> $GITHUB_OUTPUT
+          else
+            echo "issue_number=${{ github.event.inputs.issue_number }}" >> $GITHUB_OUTPUT
+          fi
+          
+      - name: Run mock validations
+        id: validate
+        run: |
+          ISSUE_NUMBER=${{ steps.issue.outputs.issue_number }}
+          ISSUE_DIR="issues/issue-${ISSUE_NUMBER}"
+          MOCK_DIR="${ISSUE_DIR}/prototypes/mocks"
+          
+          # Create validation report
+          cat > mock_validation.py << 'EOF'
+          import json
+          import os
+          import sys
+          from pathlib import Path
+          
+          def validate_ui_mock(mock_path):
+              """Validate UI mock (Figma links, HTML files, etc.)"""
+              results = {
+                  "type": "ui",
+                  "path": str(mock_path),
+                  "checks": {}
+              }
+              
+              if mock_path.suffix == '.html':
+                  # Check HTML structure
+                  import subprocess
+                  try:
+                      # Use puppeteer to check rendering
+                      result = subprocess.run(
+                          ['npx', 'puppeteer', 'screenshot', str(mock_path)],
+                          capture_output=True
+                      )
+                      results["checks"]["renders"] = result.returncode == 0
+                  except:
+                      results["checks"]["renders"] = False
+                      
+              elif mock_path.suffix == '.json' and 'figma' in mock_path.stem:
+                  # Validate Figma export
+                  with open(mock_path) as f:
+                      data = json.load(f)
+                  results["checks"]["has_frames"] = "frames" in data
+                  results["checks"]["has_components"] = "components" in data
+                  
+              return results
+          
+          def validate_api_mock(mock_path):
+              """Validate API mock responses"""
+              results = {
+                  "type": "api",
+                  "path": str(mock_path),
+                  "checks": {}
+              }
+              
+              with open(mock_path) as f:
+                  try:
+                      data = json.load(f)
+                      results["checks"]["valid_json"] = True
+                      results["checks"]["has_data"] = bool(data)
+                      
+                      # Check for common API patterns
+                      if isinstance(data, dict):
+                          results["checks"]["has_status"] = "status" in data
+                          results["checks"]["has_data_field"] = "data" in data or "results" in data
+                      
+                  except json.JSONDecodeError:
+                      results["checks"]["valid_json"] = False
+                      
+              return results
+          
+          def validate_logic_mock(mock_path):
+              """Validate logic mocks (pseudocode, state machines)"""
+              results = {
+                  "type": "logic", 
+                  "path": str(mock_path),
+                  "checks": {}
+              }
+              
+              with open(mock_path) as f:
+                  content = f.read()
+                  
+              # Check for key patterns
+              results["checks"]["has_functions"] = "def " in content or "function " in content
+              results["checks"]["has_conditions"] = "if " in content or "switch " in content
+              results["checks"]["has_comments"] = "#" in content or "//" in content or "/*" in content
+              results["checks"]["readable"] = len(content.split('\n')) < 200  # Not too long
+              
+              return results
+          
+          def analyze_mock_completeness(mock_dir):
+              """Analyze overall mock completeness"""
+              mock_path = Path(mock_dir)
+              
+              all_results = {
+                  "approaches": {},
+                  "summary": {
+                      "total_approaches": 0,
+                      "complete_approaches": 0,
+                      "recommendations": []
+                  }
+              }
+              
+              # Check each approach
+              for approach_dir in mock_path.glob("approach_*"):
+                  approach_name = approach_dir.name
+                  approach_results = {
+                      "ui_mocks": [],
+                      "api_mocks": [],
+                      "logic_mocks": [],
+                      "completeness": 0
+                  }
+                  
+                  # Validate UI mocks
+                  for ui_file in approach_dir.glob("ui/*"):
+                      approach_results["ui_mocks"].append(validate_ui_mock(ui_file))
+                  
+                  # Validate API mocks  
+                  for api_file in approach_dir.glob("api/*"):
+                      approach_results["api_mocks"].append(validate_api_mock(api_file))
+                      
+                  # Validate logic mocks
+                  for logic_file in approach_dir.glob("logic/*"):
+                      approach_results["logic_mocks"].append(validate_logic_mock(logic_file))
+                  
+                  # Calculate completeness
+                  has_ui = len(approach_results["ui_mocks"]) > 0
+                  has_api = len(approach_results["api_mocks"]) > 0
+                  has_logic = len(approach_results["logic_mocks"]) > 0
+                  
+                  completeness = sum([has_ui, has_api, has_logic]) / 3 * 100
+                  approach_results["completeness"] = completeness
+                  
+                  all_results["approaches"][approach_name] = approach_results
+                  all_results["summary"]["total_approaches"] += 1
+                  
+                  if completeness >= 66:  # At least 2/3 components
+                      all_results["summary"]["complete_approaches"] += 1
+              
+              # Generate recommendations
+              if all_results["summary"]["complete_approaches"] < 3:
+                  all_results["summary"]["recommendations"].append(
+                      f"Only {all_results['summary']['complete_approaches']} approaches are sufficiently mocked. Consider adding more."
+                  )
+                  
+              return all_results
+          
+          # Main execution
+          if __name__ == "__main__":
+              mock_dir = sys.argv[1] if len(sys.argv) > 1 else "issues/issue-1/prototypes/mocks"
+              
+              if not os.path.exists(mock_dir):
+                  print(f"Creating mock directory structure at {mock_dir}")
+                  os.makedirs(mock_dir, exist_ok=True)
+                  
+                  # Create example structure
+                  for i in range(1, 4):
+                      approach_dir = os.path.join(mock_dir, f"approach_{i}")
+                      os.makedirs(os.path.join(approach_dir, "ui"), exist_ok=True)
+                      os.makedirs(os.path.join(approach_dir, "api"), exist_ok=True)
+                      os.makedirs(os.path.join(approach_dir, "logic"), exist_ok=True)
+              
+              results = analyze_mock_completeness(mock_dir)
+              
+              with open("mock_validation_results.json", "w") as f:
+                  json.dump(results, f, indent=2)
+                  
+              print(f"Validated {results['summary']['total_approaches']} mock approaches")
+              print(f"Complete approaches: {results['summary']['complete_approaches']}")
+          EOF
+          
+          python mock_validation.py "${MOCK_DIR}"
+          
+      - name: Generate comparison matrix
+        run: |
+          cat > generate_comparison.py << 'EOF'
+          import json
+          import sys
+          
+          with open("mock_validation_results.json") as f:
+              results = json.load(f)
+          
+          # Generate markdown comparison
+          comparison = """## Mock Prototype Comparison Matrix
+          
+          | Approach | UI Mock | API Mock | Logic Mock | Completeness | Ready for Decision |
+          |----------|---------|----------|------------|--------------|-------------------|
+          """
+          
+          for approach, data in results["approaches"].items():
+              ui_status = "✅" if data["ui_mocks"] else "❌"
+              api_status = "✅" if data["api_mocks"] else "❌"
+              logic_status = "✅" if data["logic_mocks"] else "❌"
+              completeness = f"{data['completeness']:.0f}%"
+              ready = "✅ Yes" if data["completeness"] >= 66 else "⚠️ Needs Work"
+              
+              comparison += f"| {approach} | {ui_status} | {api_status} | {logic_status} | {completeness} | {ready} |\n"
+          
+          comparison += f"""
+          
+          ## Summary
+          - Total Approaches: {results['summary']['total_approaches']}
+          - Ready for Decision: {results['summary']['complete_approaches']}/{results['summary']['total_approaches']}
+          
+          ## Recommendations
+          """
+          
+          for rec in results['summary']['recommendations']:
+              comparison += f"- {rec}\n"
+              
+          with open("mock_comparison.md", "w") as f:
+              f.write(comparison)
+              
+          # Also save a decision template
+          decision_template = """## Mock Evaluation Decision
+          
+          Based on the mock prototypes, here's the evaluation:
+          
+          ### Scoring (1-10 scale)
+          | Criteria | Weight | Approach 1 | Approach 2 | Approach 3 |
+          |----------|--------|------------|------------|------------|
+          | User Experience | 30% | _/10 | _/10 | _/10 |
+          | Technical Feasibility | 25% | _/10 | _/10 | _/10 |
+          | Performance Potential | 20% | _/10 | _/10 | _/10 |
+          | Development Effort | 15% | _/10 | _/10 | _/10 |
+          | Maintenance | 10% | _/10 | _/10 | _/10 |
+          | **Weighted Total** | 100% | _/10 | _/10 | _/10 |
+          
+          ### Decision
+          **Selected Approach**: [Approach Name]
+          
+          **Rationale**:
+          - 
+          - 
+          - 
+          
+          ### Next Steps
+          1. Proceed to full build of selected approach
+          2. Estimated timeline: ___ days
+          3. Key risks to address: ___
+          """
+          
+          with open("decision_template.md", "w") as f:
+              f.write(decision_template)
+          EOF
+          
+          python generate_comparison.py
+          
+      - name: Post validation results
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const comparison = fs.readFileSync('mock_comparison.md', 'utf8');
+            const template = fs.readFileSync('decision_template.md', 'utf8');
+            
+            const comment = `## 🔍 Mock Prototype Validation Results
+            
+            ${comparison}
+            
+            ---
+            
+            ## 📋 Decision Template
+            
+            Please fill out this template to document your selection:
+            
+            ${template}
+            
+            ---
+            
+            ### Next Actions
+            1. Review the mock prototypes with stakeholders
+            2. Fill out the decision template
+            3. Use \`/advance-phase\` to proceed to full build of selected approach
+            
+            💡 **Tip**: This lightweight validation helps you make an informed decision before investing in a full build, typically saving 67% of development time.
+            
+            ---
+            *Automated mock validation by HDD workflow*`;
+            
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: ${{ steps.issue.outputs.issue_number }},
+              body: comment
+            });

@@ -1,0 +1,219 @@
+# HDD Configuration for GitHub Workflow Integration
+# This file extends the existing config-enhanced.json with HDD-specific settings
+
+hdd:
+  # Enable HDD features
+  enabled: true
+  
+  # Phase configurations
+  phases:
+    hypothesis:
+      # Labels that trigger this phase
+      labels: ["phase:hypothesis", "hdd:active"]
+      # AI agents for this phase
+      agents: ["researcher", "analyst", "architect"]
+      # Topology for agent coordination
+      topology: "mesh"
+      # Strategy for agent work
+      strategy: "research"
+      # Maximum duration (hours)
+      maxDuration: 48
+      # Required artifacts before advancing
+      requiredArtifacts:
+        - "hypothesis/statement.md"
+        - "hypothesis/assumptions.md"
+        - "hypothesis/metrics.md"
+      # Auto-advance when complete
+      autoAdvance: false
+      # Next phase
+      nextPhase: "prototype"
+      
+    prototype:
+      labels: ["phase:prototype", "hdd:active"]
+      agents: ["coder", "builder", "tester", "optimizer"]
+      topology: "star"
+      strategy: "parallel"
+      maxDuration: 120  # 5 days
+      requiredArtifacts:
+        - "prototypes/v1/README.md"
+        - "prototypes/comparison.md"
+        - "prototypes/decision.md"
+      autoAdvance: false
+      nextPhase: "validation"
+      
+    validation:
+      labels: ["phase:validation", "hdd:active"]
+      agents: ["tester", "analyst", "documenter", "monitor"]
+      topology: "hierarchical"
+      strategy: "systematic"
+      maxDuration: 72  # 3 days
+      requiredArtifacts:
+        - "validation/test-results.md"
+        - "validation/metrics-actual.md"
+        - "validation/decision-record.md"
+      autoAdvance: false
+      nextPhase: "evolution"
+      
+    evolution:
+      labels: ["phase:evolution", "monitoring"]
+      agents: ["monitor", "optimizer", "analyst", "refactor"]
+      topology: "ring"
+      strategy: "continuous"
+      maxDuration: null  # Ongoing
+      requiredArtifacts: []
+      autoAdvance: false
+      nextPhase: null
+  
+  # Validation configuration
+  validation:
+    # Run validation checks automatically
+    autoRun: true
+    # Schedule for validation runs (cron format)
+    schedule: "0 9 * * *"  # Daily at 9 AM
+    # Test types to run
+    testTypes:
+      - performance
+      - load
+      - functional
+      - lighthouse
+    # Default thresholds
+    defaultThresholds:
+      performance:
+        responseTime: 1000  # ms
+        errorRate: 0.01     # 1%
+      load:
+        concurrentUsers: 100
+        requestsPerSecond: 50
+      lighthouse:
+        performance: 80
+        accessibility: 90
+        bestPractices: 90
+  
+  # Metrics collection
+  metrics:
+    # Enable metrics collection
+    enabled: true
+    # Collection schedule
+    schedule: "0 9 * * 1"  # Weekly on Monday
+    # Metrics to track
+    track:
+      - cycleTime
+      - phaseDurations
+      - successRate
+      - pivotRate
+      - assumptionAccuracy
+    # Visualization options
+    visualization:
+      generateDashboard: true
+      formats: ["html", "png"]
+      
+  # Learning capture
+  learning:
+    # Enable learning capture
+    enabled: true
+    # Capture on issue close
+    captureOnClose: true
+    # Weekly analysis
+    weeklyAnalysis: true
+    # Pattern detection
+    patternDetection:
+      minSampleSize: 5
+      confidenceThreshold: 0.8
+    # Library management
+    library:
+      maxEntries: 1000
+      deduplication: true
+      
+  # Integration with existing github-workflow
+  integration:
+    # Extend existing phase configurations
+    extendPhases: true
+    # Use existing file organization
+    useFileOrganization: true
+    # AI attribution for HDD activities
+    aiAttribution:
+      enabled: true
+      prefix: "HDD"
+    # Custom templates directory
+    templatesPath: "templates/hdd/issue-templates"
+    
+  # Notifications
+  notifications:
+    # Notify on phase transitions
+    phaseTransitions: true
+    # Notify on validation results
+    validationResults: true
+    # Weekly metrics summary
+    weeklyMetrics: true
+    # Learning insights
+    learningInsights: true
+    
+  # Advanced features
+  advanced:
+    # Automatic hypothesis generation from issues
+    autoHypothesis:
+      enabled: false
+      triggerLabel: "needs:hypothesis"
+    # Smart prototype selection
+    smartSelection:
+      enabled: true
+      factors:
+        - performance
+        - complexity
+        - maintainability
+        - userExperience
+    # Predictive validation
+    predictiveValidation:
+      enabled: false
+      confidenceRequired: 0.85
+    # Cross-project learning
+    crossProjectLearning:
+      enabled: false
+      projects: []
+
+# Label definitions for HDD
+labels:
+  hdd:
+    - name: "phase:hypothesis"
+      color: "1D76DB"
+      description: "HDD Discovery phase"
+    - name: "phase:prototype"
+      color: "5319E7"
+      description: "HDD Prototype sprint phase"
+    - name: "phase:validation"
+      color: "0E8A16"
+      description: "HDD Validation phase"
+    - name: "phase:evolution"
+      color: "FEF2C0"
+      description: "HDD Evolution/monitoring phase"
+    - name: "hdd:active"
+      color: "B60205"
+      description: "Active HDD cycle"
+    - name: "validation:passed"
+      color: "0E8A16"
+      description: "Validation successful"
+    - name: "validation:failed"
+      color: "D93F0B"
+      description: "Validation failed"
+    - name: "hdd:pivoted"
+      color: "FBCA04"
+      description: "Hypothesis pivoted"
+    - name: "hdd:metrics"
+      color: "C5DEF5"
+      description: "Metrics tracking issue"
+
+# Commands for HDD
+commands:
+  hdd:
+    - trigger: "/advance-phase"
+      description: "Advance to next HDD phase"
+      workflow: "hdd-phase-transition.yml"
+    - trigger: "/run-validation"
+      description: "Run validation tests"
+      workflow: "hdd-validation-checks.yml"
+    - trigger: "/show-metrics"
+      description: "Display HDD metrics"
+      workflow: "hdd-metrics-collection.yml"
+    - trigger: "/capture-learnings"
+      description: "Extract learnings from cycle"
+      workflow: "hdd-learning-capture.yml"

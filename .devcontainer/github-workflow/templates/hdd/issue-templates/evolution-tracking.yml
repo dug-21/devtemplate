@@ -1,0 +1,215 @@
+name: "HDD: Evolution Tracking"
+description: Track ongoing optimization and learning from validated features
+title: "[HDD-Evolution] "
+labels: ["phase:evolution", "hdd:active", "monitoring"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 📈 Hypothesis-Driven Development - Evolution Phase
+        
+        This phase tracks the ongoing performance and optimization of
+        validated features in production, capturing learnings for future cycles.
+        
+  - type: input
+    id: validation_issue
+    attributes:
+      label: Validation Issue Reference
+      description: Link to the validation phase issue
+      placeholder: "#789"
+    validations:
+      required: true
+      
+  - type: input
+    id: feature_name
+    attributes:
+      label: Feature Name
+      description: Name of the validated feature in production
+      placeholder: "Dark Mode Toggle"
+    validations:
+      required: true
+      
+  - type: textarea
+    id: production_baseline
+    attributes:
+      label: Production Baseline Metrics
+      description: Initial metrics after deployment
+      value: |
+        ## Performance Baseline (Week 1)
+        - Load time: X seconds
+        - Error rate: X%
+        - Usage rate: X%
+        - User satisfaction: X/10
+        
+        ## Resource Utilization
+        - CPU usage: X%
+        - Memory usage: X MB
+        - API calls/day: X
+        - Storage growth: X GB/month
+    validations:
+      required: true
+      
+  - type: textarea
+    id: monitoring_plan
+    attributes:
+      label: Monitoring Plan
+      description: What metrics will be tracked over time?
+      value: |
+        ## Automated Monitoring
+        - [ ] Performance metrics (hourly)
+        - [ ] Error rates (real-time alerts)
+        - [ ] Usage analytics (daily)
+        - [ ] Resource consumption (continuous)
+        
+        ## Manual Reviews
+        - [ ] Weekly metrics review
+        - [ ] Monthly user feedback analysis
+        - [ ] Quarterly optimization assessment
+        - [ ] Semi-annual architecture review
+        
+        ## Alert Thresholds
+        - Performance degradation > 20%
+        - Error rate > 2%
+        - User complaints > 5/week
+        - Resource usage > 150% baseline
+    validations:
+      required: true
+      
+  - type: textarea
+    id: optimization_experiments
+    attributes:
+      label: Optimization Experiments
+      description: Planned experiments to improve the feature
+      value: |
+        ## Month 1 Experiments
+        Experiment 1: [Name]
+        - Hypothesis: 
+        - Test approach: 
+        - Success metric: 
+        - Timeline: 
+        
+        Experiment 2: [Name]
+        - Hypothesis: 
+        - Test approach: 
+        - Success metric: 
+        - Timeline: 
+        
+        ## Future Experiments Queue
+        - [ ] 
+        - [ ] 
+        - [ ] 
+    validations:
+      required: true
+      
+  - type: textarea
+    id: learning_log
+    attributes:
+      label: Learning Log
+      description: Document insights and patterns discovered
+      value: |
+        ## Usage Patterns
+        - Peak usage times:
+        - User segments:
+        - Feature combinations:
+        
+        ## Performance Insights
+        - Bottlenecks identified:
+        - Optimization opportunities:
+        - Scaling considerations:
+        
+        ## User Feedback Themes
+        - Positive feedback:
+        - Improvement requests:
+        - Unexpected use cases:
+        
+        ## Technical Learnings
+        - Architecture decisions that worked:
+        - Decisions that need revision:
+        - Maintenance challenges:
+    validations:
+      required: false
+      
+  - type: textarea
+    id: evolution_metrics
+    attributes:
+      label: Evolution Metrics Tracking
+      description: Track improvements over time
+      value: |
+        ## Monthly Metrics Comparison
+        | Metric | Month 1 | Month 2 | Month 3 | Trend |
+        |--------|---------|---------|---------|-------|
+        | Performance | X | - | - | - |
+        | Usage | X | - | - | - |
+        | Satisfaction | X | - | - | - |
+        | Efficiency | X | - | - | - |
+        
+        ## Optimization Impact
+        | Optimization | Date | Impact | ROI |
+        |--------------|------|--------|-----|
+        | - | - | - | - |
+        
+    validations:
+      required: false
+      
+  - type: textarea
+    id: knowledge_transfer
+    attributes:
+      label: Knowledge Transfer
+      description: How will learnings be shared?
+      value: |
+        ## Documentation Updates
+        - [ ] Update architecture docs
+        - [ ] Create best practices guide
+        - [ ] Add to pattern library
+        - [ ] Update onboarding materials
+        
+        ## Team Sharing
+        - [ ] Present at team meeting
+        - [ ] Write blog post
+        - [ ] Create video walkthrough
+        - [ ] Host knowledge transfer session
+        
+        ## Future Application
+        - Patterns to reuse:
+        - Anti-patterns to avoid:
+        - Tools/libraries discovered:
+        - Process improvements:
+    validations:
+      required: true
+      
+  - type: dropdown
+    id: evolution_status
+    attributes:
+      label: Evolution Status
+      description: Current status of the feature evolution
+      options:
+        - "Thriving - Exceeding all metrics"
+        - "Stable - Meeting expectations"
+        - "Optimizing - Active improvements"
+        - "Struggling - Below expectations"
+        - "Sunsetting - Planning deprecation"
+      default: 1
+    validations:
+      required: true
+      
+  - type: textarea
+    id: ai_agent_monitoring
+    attributes:
+      label: AI Agent Monitoring Tasks
+      description: Ongoing AI agent responsibilities
+      value: |
+        Continuous Agents:
+        - [ ] Monitor Agent - Performance tracking
+        - [ ] Optimizer Agent - Improvement suggestions
+        - [ ] Analyst Agent - Pattern recognition
+        - [ ] Refactor Agent - Code quality maintenance
+        
+        Agent Schedules:
+        - Daily: Performance reports
+        - Weekly: Optimization opportunities
+        - Monthly: Comprehensive analysis
+        - Quarterly: Architecture review
+
+---
+assignees: []
+projects: []

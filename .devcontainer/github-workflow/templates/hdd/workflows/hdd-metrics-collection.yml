@@ -1,0 +1,411 @@
+name: HDD Metrics Collection
+description: Continuous metrics tracking for HDD process improvement
+
+on:
+  schedule:
+    # Run every Monday at 9 AM UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+  issues:
+    types: [closed]
+  
+jobs:
+  collect-metrics:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          
+      - name: Install dependencies
+        run: |
+          pip install pandas matplotlib seaborn plotly kaleido
+          npm install -g @octokit/rest
+          
+      - name: Collect HDD metrics
+        id: collect
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs').promises;
+            const path = require('path');
+            
+            // Get all HDD issues
+            const allIssues = [];
+            let page = 1;
+            while (true) {
+              const { data } = await github.rest.issues.listForRepo({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                labels: 'hdd:active',
+                state: 'all',
+                per_page: 100,
+                page: page
+              });
+              
+              if (data.length === 0) break;
+              allIssues.push(...data);
+              page++;
+            }
+            
+            // Process each issue to extract metrics
+            const metrics = [];
+            
+            for (const issue of allIssues) {
+              const issueMetrics = {
+                number: issue.number,
+                title: issue.title,
+                created_at: issue.created_at,
+                closed_at: issue.closed_at,
+                state: issue.state,
+                labels: issue.labels.map(l => l.name),
+                comments: issue.comments,
+                phases: {}
+              };
+              
+              // Get issue timeline to track phase transitions
+              const timeline = await github.rest.issues.listEventsForTimeline({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                per_page: 100
+              });
+              
+              // Track phase durations
+              let currentPhase = null;
+              let phaseStart = issue.created_at;
+              
+              for (const event of timeline.data) {
+                if (event.event === 'labeled') {
+                  const label = event.label.name;
+                  if (label.startsWith('phase:')) {
+                    const phase = label.replace('phase:', '');
+                    if (currentPhase) {
+                      issueMetrics.phases[currentPhase] = {
+                        start: phaseStart,
+                        end: event.created_at,
+                        duration_hours: (new Date(event.created_at) - new Date(phaseStart)) / (1000 * 60 * 60)
+                      };
+                    }
+                    currentPhase = phase;
+                    phaseStart = event.created_at;
+                  }
+                }
+              }
+              
+              // Handle last phase
+              if (currentPhase) {
+                issueMetrics.phases[currentPhase] = {
+                  start: phaseStart,
+                  end: issue.closed_at || new Date().toISOString(),
+                  duration_hours: (new Date(issue.closed_at || new Date()) - new Date(phaseStart)) / (1000 * 60 * 60)
+                };
+              }
+              
+              // Calculate total cycle time
+              if (issue.closed_at) {
+                issueMetrics.total_cycle_time_hours = 
+                  (new Date(issue.closed_at) - new Date(issue.created_at)) / (1000 * 60 * 60);
+              }
+              
+              // Determine outcome
+              if (issue.labels.some(l => l.name === 'validation:passed')) {
+                issueMetrics.outcome = 'validated';
+              } else if (issue.labels.some(l => l.name === 'validation:failed')) {
+                issueMetrics.outcome = 'invalidated';
+              } else if (issue.labels.some(l => l.name === 'hdd:pivoted')) {
+                issueMetrics.outcome = 'pivoted';
+              } else {
+                issueMetrics.outcome = 'in_progress';
+              }
+              
+              metrics.push(issueMetrics);
+            }
+            
+            // Save metrics data
+            await fs.writeFile('hdd_metrics.json', JSON.stringify(metrics, null, 2));
+            
+            // Calculate summary statistics
+            const summary = {
+              total_issues: metrics.length,
+              completed: metrics.filter(m => m.state === 'closed').length,
+              validated: metrics.filter(m => m.outcome === 'validated').length,
+              invalidated: metrics.filter(m => m.outcome === 'invalidated').length,
+              pivoted: metrics.filter(m => m.outcome === 'pivoted').length,
+              in_progress: metrics.filter(m => m.outcome === 'in_progress').length,
+              avg_cycle_time_hours: 0,
+              avg_phase_durations: {}
+            };
+            
+            // Calculate averages
+            const completedIssues = metrics.filter(m => m.total_cycle_time_hours);
+            if (completedIssues.length > 0) {
+              summary.avg_cycle_time_hours = 
+                completedIssues.reduce((sum, m) => sum + m.total_cycle_time_hours, 0) / completedIssues.length;
+            }
+            
+            // Calculate average phase durations
+            const phases = ['hypothesis', 'prototype', 'validation', 'evolution'];
+            for (const phase of phases) {
+              const phaseDurations = metrics
+                .filter(m => m.phases[phase])
+                .map(m => m.phases[phase].duration_hours);
+              
+              if (phaseDurations.length > 0) {
+                summary.avg_phase_durations[phase] = 
+                  phaseDurations.reduce((sum, d) => sum + d, 0) / phaseDurations.length;
+              }
+            }
+            
+            // Success rate
+            const decidedIssues = metrics.filter(m => ['validated', 'invalidated', 'pivoted'].includes(m.outcome));
+            if (decidedIssues.length > 0) {
+              summary.success_rate = (summary.validated / decidedIssues.length) * 100;
+            }
+            
+            await fs.writeFile('hdd_summary.json', JSON.stringify(summary, null, 2));
+            
+            core.setOutput('metrics_collected', metrics.length);
+            core.setOutput('summary', JSON.stringify(summary));
+            
+      - name: Generate visualizations
+        run: |
+          cat > generate_reports.py << 'EOF'
+          import json
+          import pandas as pd
+          import matplotlib.pyplot as plt
+          import seaborn as sns
+          from datetime import datetime
+          import plotly.graph_objects as go
+          import plotly.express as px
+          from plotly.subplots import make_subplots
+          
+          # Load data
+          with open('hdd_metrics.json') as f:
+              metrics = json.load(f)
+          
+          with open('hdd_summary.json') as f:
+              summary = json.load(f)
+          
+          # Convert to DataFrame
+          df = pd.DataFrame(metrics)
+          
+          # Create visualizations
+          fig = make_subplots(
+              rows=2, cols=2,
+              subplot_titles=(
+                  'HDD Outcomes Distribution',
+                  'Average Phase Durations',
+                  'Cycle Time Trend',
+                  'Phase Transition Funnel'
+              ),
+              specs=[[{'type': 'domain'}, {'type': 'bar'}],
+                     [{'type': 'scatter'}, {'type': 'funnel'}]]
+          )
+          
+          # 1. Outcomes pie chart
+          outcomes = df['outcome'].value_counts()
+          fig.add_trace(
+              go.Pie(labels=outcomes.index, values=outcomes.values, hole=0.3),
+              row=1, col=1
+          )
+          
+          # 2. Phase durations bar chart
+          if summary['avg_phase_durations']:
+              phases = list(summary['avg_phase_durations'].keys())
+              durations = list(summary['avg_phase_durations'].values())
+              fig.add_trace(
+                  go.Bar(x=phases, y=durations, name='Hours'),
+                  row=1, col=2
+              )
+          
+          # 3. Cycle time trend
+          completed_df = df[df['total_cycle_time_hours'].notna()].copy()
+          if not completed_df.empty:
+              completed_df['created_at'] = pd.to_datetime(completed_df['created_at'])
+              completed_df = completed_df.sort_values('created_at')
+              fig.add_trace(
+                  go.Scatter(
+                      x=completed_df['created_at'],
+                      y=completed_df['total_cycle_time_hours'],
+                      mode='lines+markers',
+                      name='Cycle Time'
+                  ),
+                  row=2, col=1
+              )
+          
+          # 4. Phase funnel
+          phase_counts = {
+              'Hypothesis': len(df),
+              'Prototype': len([m for m in metrics if 'prototype' in m['phases']]),
+              'Validation': len([m for m in metrics if 'validation' in m['phases']]),
+              'Evolution': len([m for m in metrics if 'evolution' in m['phases']])
+          }
+          
+          fig.add_trace(
+              go.Funnel(
+                  y=list(phase_counts.keys()),
+                  x=list(phase_counts.values()),
+                  textinfo="value+percent initial"
+              ),
+              row=2, col=2
+          )
+          
+          fig.update_layout(
+              title_text="HDD Process Metrics Dashboard",
+              showlegend=False,
+              height=800
+          )
+          
+          fig.write_html('hdd_metrics_dashboard.html')
+          fig.write_image('hdd_metrics_dashboard.png', width=1200, height=800)
+          
+          # Generate detailed report
+          report = f"""# HDD Process Metrics Report
+          
+          Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+          
+          ## Summary Statistics
+          
+          - **Total HDD Issues**: {summary['total_issues']}
+          - **Completed**: {summary['completed']}
+          - **Success Rate**: {summary.get('success_rate', 0):.1f}%
+          - **Average Cycle Time**: {summary['avg_cycle_time_hours']:.1f} hours
+          
+          ## Outcomes Breakdown
+          
+          - ✅ Validated: {summary['validated']}
+          - ❌ Invalidated: {summary['invalidated']}
+          - 🔄 Pivoted: {summary['pivoted']}
+          - 🚧 In Progress: {summary['in_progress']}
+          
+          ## Average Phase Durations
+          
+          | Phase | Average Duration (hours) |
+          |-------|-------------------------|
+          """
+          
+          for phase, duration in summary['avg_phase_durations'].items():
+              report += f"| {phase.capitalize()} | {duration:.1f} |\n"
+          
+          report += """
+          
+          ## Insights and Patterns
+          
+          """
+          
+          # Analyze patterns
+          if len(completed_df) > 5:
+              # Trend analysis
+              cycle_times = completed_df['total_cycle_time_hours'].values
+              if len(cycle_times) > 1:
+                  trend = "improving" if cycle_times[-1] < cycle_times[0] else "increasing"
+                  report += f"- Cycle time trend: {trend}\n"
+              
+              # Success patterns
+              validated_df = df[df['outcome'] == 'validated']
+              if len(validated_df) > 0:
+                  avg_validated_time = validated_df['total_cycle_time_hours'].mean()
+                  report += f"- Average time for validated hypotheses: {avg_validated_time:.1f} hours\n"
+          
+          with open('hdd_metrics_report.md', 'w') as f:
+              f.write(report)
+          
+          print("Reports generated successfully!")
+          EOF
+          
+          python generate_reports.py
+          
+      - name: Store metrics artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: hdd-metrics-${{ github.run_number }}
+          path: |
+            hdd_metrics.json
+            hdd_summary.json
+            hdd_metrics_dashboard.html
+            hdd_metrics_dashboard.png
+            hdd_metrics_report.md
+            
+      - name: Update metrics in repository
+        run: |
+          # Create metrics directory if it doesn't exist
+          mkdir -p .github/hdd-metrics
+          
+          # Copy latest metrics
+          cp hdd_metrics.json .github/hdd-metrics/
+          cp hdd_summary.json .github/hdd-metrics/
+          cp hdd_metrics_report.md .github/hdd-metrics/README.md
+          cp hdd_metrics_dashboard.png .github/hdd-metrics/
+          
+          # Create historical record
+          TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+          mkdir -p .github/hdd-metrics/history
+          cp hdd_summary.json ".github/hdd-metrics/history/summary_${TIMESTAMP}.json"
+          
+      - name: Create metrics PR
+        uses: peter-evans/create-pull-request@v5
+        with:
+          title: "📊 Update HDD Process Metrics"
+          body: |
+            ## HDD Metrics Update
+            
+            This automated PR updates the HDD process metrics based on the latest data.
+            
+            ### Summary
+            ${{ fromJSON(steps.collect.outputs.summary) }}
+            
+            ### Files Updated
+            - `.github/hdd-metrics/hdd_metrics.json` - Full metrics data
+            - `.github/hdd-metrics/hdd_summary.json` - Summary statistics
+            - `.github/hdd-metrics/README.md` - Human-readable report
+            - `.github/hdd-metrics/hdd_metrics_dashboard.png` - Visual dashboard
+            
+            ---
+            *Generated by HDD Metrics Collection workflow*
+          branch: hdd-metrics-update-${{ github.run_number }}
+          commit-message: "chore: Update HDD process metrics"
+          
+      - name: Post metrics summary
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('hdd_metrics_report.md', 'utf8');
+            
+            // Find or create metrics tracking issue
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: 'hdd:metrics',
+              state: 'open'
+            });
+            
+            let issueNumber;
+            if (issues.length === 0) {
+              // Create new metrics tracking issue
+              const { data: newIssue } = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: '📊 HDD Process Metrics Tracking',
+                body: 'This issue tracks HDD process metrics over time.',
+                labels: ['hdd:metrics', 'documentation']
+              });
+              issueNumber = newIssue.number;
+            } else {
+              issueNumber = issues[0].number;
+            }
+            
+            // Post metrics report as comment
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+              body: report + '\n\n![Dashboard](https://github.com/' + context.repo.owner + '/' + context.repo.repo + '/blob/hdd-metrics-update-' + context.runNumber + '/.github/hdd-metrics/hdd_metrics_dashboard.png?raw=true)'
+            });

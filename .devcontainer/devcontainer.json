@@ -33,8 +33,7 @@
     }
   ],
   // Alternative: Use env file if you prefer
-   "runArgs": ["--env-file", "${localWorkspaceFolder}/.devcontainer/.env"],
-
+  "runArgs": ["--env-file", "${localWorkspaceFolder}/.devcontainer/.env"],
   "postCreateCommand": "bash .devcontainer/setup.sh || true && bash .devcontainer/github-workflow/ensure-mcp.sh || true",
   "postStartCommand": "bash .devcontainer/github-workflow/ensure-mcp.sh || true",
   "remoteUser": "vscode",
